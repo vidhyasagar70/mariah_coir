@@ -8,6 +8,7 @@ import supplierRoutes from './routes/supplierRoutes.js';
 import receiptRoutes from './routes/receiptRoutes.js';
 import ledgerRoutes from './routes/ledgerRoutes.js';
 import settlementRoutes from './routes/settlementRoutes.js';
+import masterVehicleRoutes from './routes/masterVehicleRoutes.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/ledger', ledgerRoutes);
 app.use('/api/settlements', settlementRoutes);
+app.use('/api/master-vehicles', masterVehicleRoutes);
 
 // Seed API endpoint
 app.post('/api/seed', async (req, res) => {
@@ -39,7 +41,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Coir Manufacturing ERP API Server Running on Port ' + PORT });
 });
 
-// Initialize Database & Start Server
+// Initialize Database & Start Server with Error Handling
 initDb().then(async () => {
   console.log('[SERVER] Database Initialized.');
   const existing = await dbQuery('SELECT COUNT(*) as count FROM suppliers');
@@ -49,8 +51,18 @@ initDb().then(async () => {
     await seedData();
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[SERVER] Express API backend listening on port ${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n[SERVER ERROR] Port ${PORT} is already in use by another process.`);
+      console.error(`Please stop any background node process or run: npx kill-port 5000\n`);
+      process.exit(1);
+    } else {
+      console.error('[SERVER ERROR]', err);
+    }
   });
 }).catch(err => {
   console.error('[SERVER] Failed to initialize DB:', err);

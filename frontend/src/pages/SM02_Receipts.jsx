@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Calendar, Hash, IndianRupee, Save, Filter, FileText, AlertCircle } from 'lucide-react';
+import { Truck, Calendar, Hash, IndianRupee, Save, Filter, FileText, Edit2 } from 'lucide-react';
 import api from '../services/api';
 import { formatCurrency, formatDate, getStatusBadgeClass } from '../utils/formatters';
 
@@ -65,7 +65,7 @@ export default function SM02_Receipts({ search }) {
     fetchReceipts();
   }, [search, supplierFilter, materialFilter, statusFilter]);
 
-  // When supplier_id changes, fetch their vehicle rates matrix
+  // When supplier_id changes, fetch their vehicle matrix
   useEffect(() => {
     if (formData.supplier_id) {
       api.get(`/suppliers/${formData.supplier_id}/vehicles`).then((res) => {
@@ -80,32 +80,41 @@ export default function SM02_Receipts({ search }) {
         } else {
           setFormData((prev) => ({
             ...prev,
-            vehicle_type: '6-Wheeler',
-            rate_per_trip: 0
+            vehicle_type: 'Custom Truck',
+            rate_per_trip: ''
           }));
         }
       }).catch(console.error);
     }
   }, [formData.supplier_id]);
 
-  // Handle Vehicle Selection change
+  // Handle Vehicle Selection change (including Custom Truck option)
   const handleVehicleChange = (vType) => {
-    const matched = selectedSupplierVehicles.find((v) => v.vehicle_type === vType);
-    setFormData((prev) => ({
-      ...prev,
-      vehicle_type: vType,
-      rate_per_trip: matched ? matched.rate_per_trip : prev.rate_per_trip
-    }));
+    if (vType === 'Custom Truck') {
+      setFormData((prev) => ({
+        ...prev,
+        vehicle_type: 'Custom Truck',
+        rate_per_trip: '' // Unlocks manual rate entry
+      }));
+    } else {
+      const matched = selectedSupplierVehicles.find((v) => v.vehicle_type === vType);
+      setFormData((prev) => ({
+        ...prev,
+        vehicle_type: vType,
+        rate_per_trip: matched ? matched.rate_per_trip : prev.rate_per_trip
+      }));
+    }
   };
 
   const calculatedTotal = (parseInt(formData.trip_count || 0, 10)) * (parseFloat(formData.rate_per_trip || 0));
+  const isCustomTruck = formData.vehicle_type === 'Custom Truck';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.supplier_id || !formData.vehicle_type || formData.trip_count <= 0 || formData.rate_per_trip < 0) {
-      setError('Please fill in all required fields accurately.');
+    if (!formData.supplier_id || !formData.vehicle_type || formData.trip_count <= 0 || formData.rate_per_trip === '' || parseFloat(formData.rate_per_trip) < 0) {
+      setError('Please fill in all required fields accurately. Enter rate per trip for custom truck.');
       return;
     }
 
@@ -139,7 +148,7 @@ export default function SM02_Receipts({ search }) {
           </div>
           <div>
             <h3 className="font-bold text-slate-900 text-base">Record Material Receipt (Goods Inward)</h3>
-            <p className="text-xs text-slate-500">Auto-populates vehicle rates and posts delivery liability to ledger</p>
+            <p className="text-xs text-slate-500">Includes Custom Truck option & auto-calculates total goods inward amount</p>
           </div>
         </div>
 
@@ -199,30 +208,22 @@ export default function SM02_Receipts({ search }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Vehicle Type */}
+            {/* Vehicle Type Dropdown (Including Custom Truck) */}
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Vehicle Type *</label>
-              {selectedSupplierVehicles.length > 0 ? (
-                <select
-                  value={formData.vehicle_type}
-                  onChange={(e) => handleVehicleChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-slate-500"
-                >
-                  {selectedSupplierVehicles.map((v) => (
-                    <option key={v.id} value={v.vehicle_type}>
-                      {v.vehicle_type} (Rate: ₹{v.rate_per_trip}/trip)
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  placeholder="e.g. 6-Wheeler"
-                  value={formData.vehicle_type}
-                  onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-slate-500"
-                />
-              )}
+              <select
+                value={formData.vehicle_type}
+                onChange={(e) => handleVehicleChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-slate-500"
+              >
+                {selectedSupplierVehicles.map((v) => (
+                  <option key={v.id} value={v.vehicle_type}>
+                    {v.vehicle_type} (Rate: ₹{v.rate_per_trip}/trip)
+                  </option>
+                ))}
+                {/* Custom Truck Option */}
+                <option value="Custom Truck">🚛 Custom Truck (Manual Rate Entry)</option>
+              </select>
             </div>
 
             {/* Trip Count */}
@@ -241,9 +242,16 @@ export default function SM02_Receipts({ search }) {
               </div>
             </div>
 
-            {/* Rate Per Trip */}
+            {/* Rate Per Trip (Manual Entry for Custom Truck or Auto-filled) */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Rate Per Trip (₹) *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-slate-700 font-semibold">Rate Per Trip (₹) *</label>
+                {isCustomTruck && (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                    Manual Custom Rate
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
@@ -251,9 +259,14 @@ export default function SM02_Receipts({ search }) {
                   step="0.01"
                   min="0"
                   required
+                  placeholder={isCustomTruck ? "Enter custom truck rate" : "Auto-filled"}
                   value={formData.rate_per_trip}
                   onChange={(e) => setFormData({ ...formData, rate_per_trip: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-bold focus:outline-none focus:border-slate-500"
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl border text-slate-900 font-mono font-bold focus:outline-none focus:border-slate-500 ${
+                    isCustomTruck
+                      ? 'bg-amber-50/50 border-amber-300 ring-2 ring-amber-100'
+                      : 'bg-slate-50 border-slate-200'
+                  }`}
                 />
               </div>
             </div>
@@ -265,6 +278,7 @@ export default function SM02_Receipts({ search }) {
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Calculated Amount</span>
               <p className="text-xs text-slate-300 font-medium">
                 {formData.trip_count || 0} trip(s) × ₹ {formData.rate_per_trip || 0} / trip
+                {isCustomTruck && <span className="text-amber-400 font-bold ml-1.5">(Custom Truck)</span>}
               </p>
             </div>
 

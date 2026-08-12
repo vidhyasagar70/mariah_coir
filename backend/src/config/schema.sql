@@ -2,6 +2,14 @@ CREATE SEQUENCE IF NOT EXISTS supplier_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS receipt_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS settlement_seq START 1;
 
+-- 0. Master Vehicles Table (Truck Master)
+CREATE TABLE IF NOT EXISTS master_vehicles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    vehicle_type VARCHAR(50) NOT NULL UNIQUE,
+    default_rate NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 1. Suppliers Table
 CREATE TABLE IF NOT EXISTS suppliers (
     id VARCHAR(20) PRIMARY KEY DEFAULT 'SUP-' || LPAD(CAST(nextval('supplier_seq') AS TEXT), 3, '0'),

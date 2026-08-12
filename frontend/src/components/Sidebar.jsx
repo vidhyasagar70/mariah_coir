@@ -1,8 +1,10 @@
-import React from 'react';
-import { Users, Truck, BookOpen, Scale, Factory, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Truck, BookOpen, Scale, Factory, ChevronRight, ChevronDown, Layers, SlidersHorizontal } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const navItems = [
+  const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(true);
+
+  const supplierSubNav = [
     {
       id: 'sm01',
       label: 'Supplier Directory',
@@ -11,10 +13,17 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       desc: 'Suppliers & Rate Matrix'
     },
     {
+      id: 'trucks',
+      label: 'Truck Master',
+      code: 'SM-TM',
+      icon: Truck,
+      desc: 'Vehicle Types & Rates'
+    },
+    {
       id: 'sm02',
       label: 'Material Receipts',
       code: 'SM-02',
-      icon: Truck,
+      icon: Layers,
       desc: 'Goods Inward Entry'
     },
     {
@@ -42,50 +51,69 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </div>
         <div>
           <h1 className="font-bold text-white text-base tracking-tight">CoirCraft ERP</h1>
-          <span className="text-[11px] font-semibold text-slate-400">Supplier Management</span>
+          <span className="text-[11px] font-semibold text-slate-400">Coir Manufacturing System</span>
         </div>
       </div>
 
-      <div className="px-2 pt-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ERP Modules</span>
-      </div>
+      {/* Main Navigation Groups */}
+      <div className="space-y-4 flex-1">
+        {/* Parent Category: SUPPLIER MANAGEMENT */}
+        <div className="space-y-1.5">
+          <button
+            onClick={() => setIsSupplierMenuOpen(!isSupplierMenuOpen)}
+            className="w-full flex items-center justify-between px-2 py-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <div className="flex items-center space-x-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
+              <span>Supplier Management</span>
+            </div>
+            {isSupplierMenuOpen ? (
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+            )}
+          </button>
 
-      {/* Navigation Links */}
-      <nav className="space-y-1 flex-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-150 cursor-pointer ${
-                isActive
-                  ? 'bg-slate-800 text-white font-semibold shadow-sm border border-slate-700'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
-              }`}
-            >
-              <div className="flex items-center space-x-3 text-left">
-                <div
-                  className={`p-2 rounded-lg ${
-                    isActive ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-xs font-mono font-bold text-slate-400">{item.code}</span>
-                    <span className="text-xs font-medium">{item.label}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 truncate max-w-[120px]">{item.desc}</p>
-                </div>
-              </div>
-              {isActive && <ChevronRight className="h-4 w-4 text-white shrink-0" />}
-            </button>
-          );
-        })}
-      </nav>
+          {/* Sub-menus */}
+          {isSupplierMenuOpen && (
+            <div className="space-y-1 pl-1">
+              {supplierSubNav.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-800 text-white font-semibold shadow-xs border border-slate-700'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 text-left">
+                      <div
+                        className={`p-1.5 rounded-lg ${
+                          isActive ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">{item.code}</span>
+                          <span className="text-xs font-medium">{item.label}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 truncate max-w-[120px]">{item.desc}</p>
+                      </div>
+                    </div>
+                    {isActive && <ChevronRight className="h-3.5 w-3.5 text-white shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Footer Info */}
       <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SM01_Suppliers from './pages/SM01_Suppliers';
+import TruckMaster from './pages/TruckMaster';
 import SM02_Receipts from './pages/SM02_Receipts';
 import SM03_Ledger from './pages/SM03_Ledger';
 import SM04_Settlements from './pages/SM04_Settlements';
@@ -21,10 +22,17 @@ export default function App() {
           addActionLabel: 'Add Supplier',
           onAdd: () => setIsAddSupplierModalOpen(true)
         };
+      case 'trucks':
+        return {
+          title: 'Truck Master & Default Trip Rates',
+          subtitle: 'Define global transport vehicle types and benchmark trip rates for supplier onboarding',
+          addActionLabel: null,
+          onAdd: null
+        };
       case 'sm02':
         return {
           title: 'SM-02: Material Receipts Management (Goods Inward)',
-          subtitle: 'Log inward shipments of Green Husk, Brown Husk, Fuel, and Water with auto-calculated rates',
+          subtitle: 'Log inward shipments of Green Husk, Brown Husk, Fuel, and Water with auto-calculated rates & Custom Truck support',
           addActionLabel: null,
           onAdd: null
         };
@@ -51,7 +59,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans selection:bg-slate-900 selection:text-white">
-      {/* Deep Charcoal Minimalist Sidebar */}
+      {/* Deep Charcoal Minimalist Sidebar with Parent Menu Group */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Workspace */}
@@ -75,6 +83,7 @@ export default function App() {
                 setIsAddModalOpen={setIsAddSupplierModalOpen}
               />
             )}
+            {activeTab === 'trucks' && <TruckMaster />}
             {activeTab === 'sm02' && <SM02_Receipts search={search} />}
             {activeTab === 'sm03' && <SM03_Ledger search={search} />}
             {activeTab === 'sm04' && <SM04_Settlements search={search} />}

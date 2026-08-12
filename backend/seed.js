@@ -8,8 +8,28 @@ export async function seedData() {
   await dbQuery(`DELETE FROM receipts;`);
   await dbQuery(`DELETE FROM supplier_vehicles;`);
   await dbQuery(`DELETE FROM suppliers;`);
+  await dbQuery(`DELETE FROM master_vehicles;`);
 
   console.log('[SEED] Database cleared.');
+
+  // Master Vehicles (Truck Master)
+  const masterVehicles = [
+    { vehicle_type: 'Pickup', default_rate: 1800.00 },
+    { vehicle_type: '6-Wheeler', default_rate: 4500.00 },
+    { vehicle_type: '10-Wheeler', default_rate: 7500.00 },
+    { vehicle_type: 'Tractor Trailer', default_rate: 5500.00 },
+    { vehicle_type: 'Diesel Tanker', default_rate: 1500.00 },
+    { vehicle_type: 'Water Tanker (6000L)', default_rate: 1600.00 },
+    { vehicle_type: 'Water Tanker (12000L)', default_rate: 2900.00 },
+    { vehicle_type: 'Custom Truck', default_rate: 0.00 }
+  ];
+
+  for (const mv of masterVehicles) {
+    await dbQuery(
+      `INSERT INTO master_vehicles (id, vehicle_type, default_rate) VALUES ($1, $2, $3)`,
+      [generateUuid(), mv.vehicle_type, mv.default_rate]
+    );
+  }
 
   // Suppliers
   const suppliers = [
@@ -236,5 +256,5 @@ export async function seedData() {
     );
   }
 
-  console.log('[SEED] Realistic Coir ERP sample data populated.');
+  console.log('[SEED] Master vehicles and realistic Coir ERP data populated.');
 }

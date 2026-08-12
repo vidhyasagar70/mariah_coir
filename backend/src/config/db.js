@@ -63,6 +63,13 @@ export async function initDb() {
         CREATE SEQUENCE IF NOT EXISTS receipt_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS settlement_seq START 1;
 
+        CREATE TABLE IF NOT EXISTS master_vehicles (
+            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+            vehicle_type VARCHAR(50) NOT NULL UNIQUE,
+            default_rate NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS suppliers (
             id VARCHAR(20) PRIMARY KEY DEFAULT 'SUP-' || LPAD(CAST(nextval('supplier_seq') AS TEXT), 3, '0'),
             name VARCHAR(100) NOT NULL,
@@ -121,6 +128,15 @@ export async function initDb() {
       client.release();
     }
   } else {
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS master_vehicles (
+          id TEXT PRIMARY KEY,
+          vehicle_type TEXT NOT NULL UNIQUE,
+          default_rate REAL NOT NULL DEFAULT 0.00,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
     await runSqlite(`
       CREATE TABLE IF NOT EXISTS suppliers (
           id TEXT PRIMARY KEY,

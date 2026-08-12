@@ -1,9 +1,20 @@
-import React from 'react';
-import { Plus, Trash2, Truck, IndianRupee } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Trash2, IndianRupee } from 'lucide-react';
+import api from '../services/api';
 
 export default function VehicleRepeater({ vehicles, setVehicles }) {
+  const [masterVehicles, setMasterVehicles] = useState([]);
+
+  useEffect(() => {
+    api.get('/master-vehicles').then((res) => {
+      setMasterVehicles(res.data);
+    }).catch(console.error);
+  }, []);
+
   const handleAddRow = () => {
-    setVehicles([...vehicles, { vehicle_type: '6-Wheeler', rate_per_trip: '' }]);
+    const defaultType = masterVehicles.length > 0 ? masterVehicles[0].vehicle_type : '6-Wheeler';
+    const defaultRate = masterVehicles.length > 0 ? masterVehicles[0].default_rate : '4500';
+    setVehicles([...vehicles, { vehicle_type: defaultType, rate_per_trip: defaultRate }]);
   };
 
   const handleRemoveRow = (index) => {
@@ -11,9 +22,19 @@ export default function VehicleRepeater({ vehicles, setVehicles }) {
     setVehicles(next);
   };
 
-  const handleChange = (index, field, value) => {
+  const handleVehicleTypeChange = (index, newType) => {
+    const matched = masterVehicles.find((mv) => mv.vehicle_type === newType);
     const next = [...vehicles];
-    next[index][field] = value;
+    next[index].vehicle_type = newType;
+    if (matched && matched.default_rate !== undefined) {
+      next[index].rate_per_trip = matched.default_rate;
+    }
+    setVehicles(next);
+  };
+
+  const handleRateChange = (index, rate) => {
+    const next = [...vehicles];
+    next[index].rate_per_trip = rate;
     setVehicles(next);
   };
 
@@ -44,16 +65,18 @@ export default function VehicleRepeater({ vehicles, setVehicles }) {
               <div className="w-1/2">
                 <select
                   value={v.vehicle_type}
-                  onChange={(e) => handleChange(idx, 'vehicle_type', e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-slate-500"
+                  onChange={(e) => handleVehicleTypeChange(idx, e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-slate-500 font-medium"
                 >
-                  <option value="Pickup">Pickup (Small Truck)</option>
-                  <option value="6-Wheeler">6-Wheeler Truck</option>
-                  <option value="10-Wheeler">10-Wheeler Truck</option>
-                  <option value="Tractor Trailer">Tractor Trailer</option>
-                  <option value="Diesel Tanker">Diesel Fuel Tanker</option>
-                  <option value="Water Tanker (6000L)">Water Tanker (6000L)</option>
-                  <option value="Water Tanker (12000L)">Water Tanker (12000L)</option>
+                  {masterVehicles.map((mv) => (
+                    <option key={mv.id} value={mv.vehicle_type}>
+                      {mv.vehicle_type}
+                    </option>
+                  ))}
+                  {/* Fallback option if custom text typed */}
+                  {!masterVehicles.some((mv) => mv.vehicle_type === v.vehicle_type) && v.vehicle_type && (
+                    <option value={v.vehicle_type}>{v.vehicle_type}</option>
+                  )}
                 </select>
               </div>
 
@@ -65,7 +88,7 @@ export default function VehicleRepeater({ vehicles, setVehicles }) {
                   min="0"
                   placeholder="Rate per trip (₹)"
                   value={v.rate_per_trip}
-                  onChange={(e) => handleChange(idx, 'rate_per_trip', e.target.value)}
+                  onChange={(e) => handleRateChange(idx, e.target.value)}
                   className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono font-semibold placeholder-slate-400 focus:outline-none focus:border-slate-500"
                 />
               </div>
