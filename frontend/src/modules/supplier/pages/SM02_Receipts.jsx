@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, Calendar, Hash, IndianRupee, Save, Filter, FileText, Edit2 } from 'lucide-react';
-import api from '../services/api';
-import { formatCurrency, formatDate, getStatusBadgeClass } from '../utils/formatters';
+import api from '../../../shared/services/api';
+import { formatCurrency, formatDate, getStatusBadgeClass } from '../../../shared/utils/formatters';
 
 export default function SM02_Receipts({ search }) {
   const [suppliers, setSuppliers] = useState([]);
@@ -142,13 +142,13 @@ export default function SM02_Receipts({ search }) {
     <div className="space-y-6">
       {/* Goods Inward Entry Form Panel */}
       <div className="card-panel p-6 rounded-2xl space-y-5">
-        <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-          <div className="p-2 rounded-xl bg-slate-900 text-white">
+        <div className="flex items-center space-x-3 border-b border-[#F4EDE4] pb-3">
+          <div className="p-2 rounded-xl bg-[#965E36] text-white">
             <Truck className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-base">Record Material Receipt (Goods Inward)</h3>
-            <p className="text-xs text-slate-500">Includes Custom Truck option & auto-calculates total goods inward amount</p>
+            <h3 className="font-bold text-[#2E1C11] text-base">Record Material Receipt (Goods Inward)</h3>
+            <p className="text-xs text-[#7A6759]">Includes Custom Truck option & auto-calculates total goods inward amount</p>
           </div>
         </div>
 
@@ -162,11 +162,11 @@ export default function SM02_Receipts({ search }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Supplier Select */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Select Supplier *</label>
+              <label className="block text-[#3D281C] font-semibold mb-1">Select Supplier *</label>
               <select
                 value={formData.supplier_id}
                 onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-slate-500"
+                className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-[#2E1C11] font-medium focus:outline-none focus:border-[#8C5E3C]"
               >
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -178,11 +178,11 @@ export default function SM02_Receipts({ search }) {
 
             {/* Material Type */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Material Type *</label>
+              <label className="block text-[#3D281C] font-semibold mb-1">Material Type *</label>
               <select
                 value={formData.material_type}
                 onChange={(e) => setFormData({ ...formData, material_type: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-slate-500"
+                className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-[#2E1C11] font-medium focus:outline-none focus:border-[#8C5E3C]"
               >
                 <option value="Green Husk">Green Husk</option>
                 <option value="Brown Husk">Brown Husk</option>
@@ -193,15 +193,15 @@ export default function SM02_Receipts({ search }) {
 
             {/* Receipt Date */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Receipt Date *</label>
+              <label className="block text-[#3D281C] font-semibold mb-1">Receipt Date *</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
                 <input
                   type="date"
                   required
                   value={formData.receipt_date}
                   onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-slate-500 font-medium"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-[#2E1C11] focus:outline-none focus:border-[#8C5E3C] font-medium"
                 />
               </div>
             </div>
@@ -210,11 +210,11 @@ export default function SM02_Receipts({ search }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Vehicle Type Dropdown (Including Custom Truck) */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Vehicle Type *</label>
+              <label className="block text-[#3D281C] font-semibold mb-1">Vehicle Type *</label>
               <select
                 value={formData.vehicle_type}
                 onChange={(e) => handleVehicleChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-slate-500"
+                className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-[#2E1C11] font-medium focus:outline-none focus:border-[#8C5E3C]"
               >
                 {selectedSupplierVehicles.map((v) => (
                   <option key={v.id} value={v.vehicle_type}>
@@ -228,16 +228,16 @@ export default function SM02_Receipts({ search }) {
 
             {/* Trip Count */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Trip Count *</label>
+              <label className="block text-[#3D281C] font-semibold mb-1">Trip Count *</label>
               <div className="relative">
-                <Hash className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Hash className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
                 <input
                   type="number"
                   min="1"
                   required
                   value={formData.trip_count}
                   onChange={(e) => setFormData({ ...formData, trip_count: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-bold focus:outline-none focus:border-slate-500"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-[#2E1C11] font-mono font-bold focus:outline-none focus:border-[#8C5E3C]"
                 />
               </div>
             </div>
@@ -245,15 +245,15 @@ export default function SM02_Receipts({ search }) {
             {/* Rate Per Trip (Manual Entry for Custom Truck or Auto-filled) */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-slate-700 font-semibold">Rate Per Trip (₹) *</label>
+                <label className="block text-[#3D281C] font-semibold">Rate Per Trip (₹) *</label>
                 {isCustomTruck && (
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  <span className="text-[10px] font-bold text-[#92400E] bg-[#FEF3C7] px-1.5 py-0.5 rounded border border-[#FDE68A]">
                     Manual Custom Rate
                   </span>
                 )}
               </div>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
                 <input
                   type="number"
                   step="0.01"
@@ -262,23 +262,23 @@ export default function SM02_Receipts({ search }) {
                   placeholder={isCustomTruck ? "Enter custom truck rate" : "Auto-filled"}
                   value={formData.rate_per_trip}
                   onChange={(e) => setFormData({ ...formData, rate_per_trip: e.target.value })}
-                  className={`w-full pl-9 pr-3 py-2 rounded-xl border text-slate-900 font-mono font-bold focus:outline-none focus:border-slate-500 ${
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl border text-[#2E1C11] font-mono font-bold focus:outline-none focus:border-[#8C5E3C] ${
                     isCustomTruck
-                      ? 'bg-amber-50/50 border-amber-300 ring-2 ring-amber-100'
-                      : 'bg-slate-50 border-slate-200'
+                      ? 'bg-[#FEF3C7]/40 border-[#F59E0B] ring-2 ring-[#FEF3C7]'
+                      : 'bg-[#FAF7F2] border-[#E8DCD0]'
                   }`}
                 />
               </div>
             </div>
           </div>
 
-          {/* Full-width Dark Calculation Strip */}
-          <div className="p-4 rounded-xl bg-[#0B0F17] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          {/* Full-width Calculation Strip */}
+          <div className="p-4 rounded-xl bg-[#7A4A28] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Calculated Amount</span>
-              <p className="text-xs text-slate-300 font-medium">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5EBE6]">Total Calculated Amount</span>
+              <p className="text-xs text-[#EBE0D8] font-medium">
                 {formData.trip_count || 0} trip(s) × ₹ {formData.rate_per_trip || 0} / trip
-                {isCustomTruck && <span className="text-amber-400 font-bold ml-1.5">(Custom Truck)</span>}
+                {isCustomTruck && <span className="text-[#FBBF24] font-bold ml-1.5">(Custom Truck)</span>}
               </p>
             </div>
 
@@ -290,9 +290,9 @@ export default function SM02_Receipts({ search }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-white text-slate-950 font-bold hover:bg-slate-100 cursor-pointer disabled:opacity-50 transition-all text-xs"
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-white text-[#2E1C11] font-bold hover:bg-[#FAF7F2] cursor-pointer disabled:opacity-50 transition-all text-xs"
               >
-                <Save className="h-4 w-4 text-slate-950" />
+                <Save className="h-4 w-4 text-[#2E1C11]" />
                 <span>{submitting ? 'Recording...' : 'Record Goods Inward'}</span>
               </button>
             </div>
@@ -301,17 +301,17 @@ export default function SM02_Receipts({ search }) {
       </div>
 
       {/* Receipts Table Controls */}
-      <div className="card-panel p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center space-x-2 text-slate-700 text-xs font-semibold">
-          <Filter className="h-4 w-4 text-slate-400" />
+      <div className="card-panel p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center space-x-2 text-[#3D281C] text-xs font-semibold">
+          <Filter className="h-4 w-4 text-[#A8988B]" />
           <span>Receipt Filters:</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 w-full md:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full md:w-auto">
           <select
             value={supplierFilter}
             onChange={(e) => setSupplierFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none font-medium"
+            className="px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-xs text-[#2E1C11] focus:outline-none font-medium"
           >
             <option value="All">All Suppliers</option>
             {suppliers.map((s) => (
@@ -324,7 +324,7 @@ export default function SM02_Receipts({ search }) {
           <select
             value={materialFilter}
             onChange={(e) => setMaterialFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none font-medium"
+            className="px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-xs text-[#2E1C11] focus:outline-none font-medium"
           >
             <option value="All">All Materials</option>
             <option value="Green Husk">Green Husk</option>
@@ -336,7 +336,7 @@ export default function SM02_Receipts({ search }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none font-medium"
+            className="px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8DCD0] text-xs text-[#2E1C11] focus:outline-none font-medium"
           >
             <option value="All">All Statuses</option>
             <option value="Pending">Pending</option>
@@ -349,21 +349,21 @@ export default function SM02_Receipts({ search }) {
       {/* Material Receipts Data Table */}
       <div className="card-panel rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="py-12 text-center text-xs text-slate-500 flex items-center justify-center space-x-2">
-            <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+          <div className="py-12 text-center text-xs text-[#7A6759] flex items-center justify-center space-x-2">
+            <div className="w-4 h-4 border-2 border-[#965E36] border-t-transparent rounded-full animate-spin"></div>
             <span>Loading material receipts...</span>
           </div>
         ) : receipts.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <FileText className="h-10 w-10 text-slate-300 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-800">No Receipts Recorded</h3>
-            <p className="text-xs text-slate-500">Record a goods inward receipt to begin tracking material arrivals.</p>
+            <FileText className="h-10 w-10 text-[#D4C3B3] mx-auto" />
+            <h3 className="text-sm font-bold text-[#2E1C11]">No Receipts Recorded</h3>
+            <p className="text-xs text-[#7A6759]">Record a goods inward receipt to begin tracking material arrivals.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                <tr className="border-b border-[#E8DCD0] bg-[#F5ECE3] text-[#6E594A] font-bold uppercase tracking-wider">
                   <th className="p-4">RECEIPT ID</th>
                   <th className="p-4">DATE</th>
                   <th className="p-4">SUPPLIER</th>
@@ -374,21 +374,21 @@ export default function SM02_Receipts({ search }) {
                   <th className="p-4">STATUS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F4EDE4]">
                 {receipts.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-4 font-mono font-bold text-slate-900">{r.id}</td>
-                    <td className="p-4 text-slate-600 font-medium whitespace-nowrap">{formatDate(r.receipt_date)}</td>
-                    <td className="p-4 font-semibold text-slate-900">
+                  <tr key={r.id} className="hover:bg-[#FAF7F2]/80 transition-colors">
+                    <td className="p-4 font-mono font-bold text-[#2E1C11]">{r.id}</td>
+                    <td className="p-4 text-[#6E594A] font-medium whitespace-nowrap">{formatDate(r.receipt_date)}</td>
+                    <td className="p-4 font-semibold text-[#2E1C11]">
                       <div>{r.supplier_name}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">{r.supplier_id}</div>
+                      <div className="text-[11px] text-[#A8988B] font-mono">{r.supplier_id}</div>
                     </td>
-                    <td className="p-4 font-medium text-slate-800">{r.material_type}</td>
-                    <td className="p-4 text-slate-700">
+                    <td className="p-4 font-medium text-[#3D281C]">{r.material_type}</td>
+                    <td className="p-4 text-[#5C4A3E]">
                       <span className="font-bold">{r.trip_count} trip(s)</span> via {r.vehicle_type}
                     </td>
-                    <td className="p-4 font-mono text-slate-700">₹{r.rate_per_trip}</td>
-                    <td className="p-4 font-mono font-bold text-slate-900 text-sm">{formatCurrency(r.total_amount)}</td>
+                    <td className="p-4 font-mono text-[#5C4A3E]">₹{r.rate_per_trip}</td>
+                    <td className="p-4 font-mono font-bold text-[#2E1C11] text-sm">{formatCurrency(r.total_amount)}</td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${getStatusBadgeClass(r.status)}`}>
                         {r.status}

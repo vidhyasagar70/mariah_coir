@@ -1,69 +1,110 @@
-import React, { useState } from 'react';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import SM01_Suppliers from './pages/SM01_Suppliers';
-import TruckMaster from './pages/TruckMaster';
-import SM02_Receipts from './pages/SM02_Receipts';
-import SM03_Ledger from './pages/SM03_Ledger';
-import SM04_Settlements from './pages/SM04_Settlements';
+import React, { useState, useEffect } from 'react';
+import Sidebar from './shared/components/Sidebar';
+import Header from './shared/components/Header';
+import SM01_Suppliers from './modules/supplier/pages/SM01_Suppliers';
+import TruckMaster from './modules/supplier/pages/TruckMaster';
+import SM02_Receipts from './modules/supplier/pages/SM02_Receipts';
+import SM03_Ledger from './modules/supplier/pages/SM03_Ledger';
+import SM04_Settlements from './modules/supplier/pages/SM04_Settlements';
+import MM01_MaintenanceForm from './modules/maintenance/pages/MM01_MaintenanceForm';
+import MM02_MaintenanceRecords from './modules/maintenance/pages/MM02_MaintenanceRecords';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('sm01');
+  const getTabFromHash = () => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = ['sm01', 'trucks', 'sm02', 'sm03', 'sm04', 'mm01', 'mm02'];
+    return validTabs.includes(hash) ? hash : 'sm01';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getTabFromHash);
   const [search, setSearch] = useState('');
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    window.location.hash = tab;
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTabState(getTabFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const getHeaderMeta = () => {
     switch (activeTab) {
       case 'sm01':
         return {
           title: 'SM-01: Supplier Directory & Rate Matrix',
-          subtitle: 'Manage coir suppliers, categories, and vehicle transport trip rate matrices',
+          subtitle: '',
           addActionLabel: 'Add Supplier',
           onAdd: () => setIsAddSupplierModalOpen(true)
         };
       case 'trucks':
         return {
           title: 'Truck Master & Default Trip Rates',
-          subtitle: 'Define global transport vehicle types and benchmark trip rates for supplier onboarding',
+          subtitle: '',
           addActionLabel: null,
           onAdd: null
         };
       case 'sm02':
         return {
           title: 'SM-02: Material Receipts Management (Goods Inward)',
-          subtitle: 'Log inward shipments of Green Husk, Brown Husk, Fuel, and Water with auto-calculated rates & Custom Truck support',
+          subtitle: '',
           addActionLabel: null,
           onAdd: null
         };
       case 'sm03':
         return {
           title: 'SM-03: Supplier Payment Ledger',
-          subtitle: 'Track delivery liabilities (Owner Owes) vs advance payments & settlements (Owner Paid)',
+          subtitle: '',
           addActionLabel: null,
           onAdd: null
         };
       case 'sm04':
         return {
           title: 'SM-04: Account Settlements Hub',
-          subtitle: 'Link pending receipt invoices, process settlements, and calculate remaining balances',
+          subtitle: '',
           addActionLabel: null,
           onAdd: null
         };
+      case 'mm01':
+        return {
+          title: 'Maintenance Entry',
+          subtitle: '',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'mm02':
+        return {
+          title: 'Maintenance Records',
+          subtitle: '',
+          addActionLabel: 'Add Maintenance Entry',
+          onAdd: () => setActiveTab('mm01')
+        };
       default:
-        return { title: 'Supplier Management', subtitle: '', addActionLabel: null, onAdd: null };
+        return { title: 'Coir Manufacturing ERP', subtitle: '', addActionLabel: null, onAdd: null };
     }
   };
 
   const headerMeta = getHeaderMeta();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans selection:bg-slate-900 selection:text-white">
-      {/* Deep Charcoal Minimalist Sidebar with Parent Menu Group */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="h-screen bg-[#FAF7F2] text-[#2E1C11] flex font-sans selection:bg-[#965E36] selection:text-white overflow-hidden">
+      {/* Light Brown Minimalist Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
+      />
 
       {/* Main Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header
           title={headerMeta.title}
           subtitle={headerMeta.subtitle}
@@ -71,11 +112,11 @@ export default function App() {
           setSearch={setSearch}
           onAddAction={headerMeta.onAdd}
           addActionLabel={headerMeta.addActionLabel}
-          onRefresh={() => setRefreshKey((k) => k + 1)}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-50" key={refreshKey}>
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-[#FAF7F2]" key={refreshKey}>
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
             {activeTab === 'sm01' && (
               <SM01_Suppliers
                 search={search}
@@ -87,6 +128,8 @@ export default function App() {
             {activeTab === 'sm02' && <SM02_Receipts search={search} />}
             {activeTab === 'sm03' && <SM03_Ledger search={search} />}
             {activeTab === 'sm04' && <SM04_Settlements search={search} />}
+            {activeTab === 'mm01' && <MM01_MaintenanceForm />}
+            {activeTab === 'mm02' && <MM02_MaintenanceRecords search={search} />}
           </div>
         </main>
       </div>

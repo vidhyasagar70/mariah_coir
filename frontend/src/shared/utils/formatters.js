@@ -21,17 +21,17 @@ export function formatDate(dateString) {
   }).format(date);
 }
 
-// B&W Minimalist Badge helper classes
+// B&W (Brown & White) Minimalist Badge helper classes
 export function getCategoryBadgeClass(category) {
   switch (category) {
     case 'Raw Material':
-      return 'bg-slate-100 text-slate-800 border-slate-200';
+      return 'bg-[#F5ECE3] text-[#5C361E] border-[#E0CEBE]';
     case 'Fuel':
-      return 'bg-amber-50 text-amber-800 border-amber-200';
+      return 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]';
     case 'Utility':
-      return 'bg-sky-50 text-sky-800 border-sky-200';
+      return 'bg-[#E0F2FE] text-[#075985] border-[#BAE6FD]';
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return 'bg-[#F5ECE3] text-[#5C361E] border-[#E0CEBE]';
   }
 }
 
@@ -39,13 +39,13 @@ export function getStatusBadgeClass(status) {
   switch (status) {
     case 'Active':
     case 'Settled':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]';
     case 'Partial':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]';
     case 'Pending':
     case 'Inactive':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'bg-[#FEE2E2] text-[#991B1B] border-[#FCA5A5]';
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return 'bg-[#F5ECE3] text-[#5C361E] border-[#E0CEBE]';
   }
 }

@@ -1,4 +1,4 @@
-import { dbQuery, generateUuid } from '../config/db.js';
+import { dbQuery, generateUuid } from '../../../config/db.js';
 
 export async function getMasterVehicles(req, res) {
   try {

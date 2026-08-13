@@ -256,5 +256,51 @@ export async function seedData() {
     );
   }
 
-  console.log('[SEED] Master vehicles and realistic Coir ERP data populated.');
+  // Maintenance Register Entries
+  await dbQuery(`DELETE FROM maintenance_register;`);
+  const maintenanceEntries = [
+    {
+      id: 'MN-001',
+      maintenance_date: '2026-08-04',
+      maintenance_name: 'Husk Decorticator Motor & Bearing Replacement',
+      maintenance_reason: '50HP Main drive motor bearing overheating and noise issues',
+      amount_spent: 18500.00,
+      days_taken: 2,
+      pay_mode: 'Online / Bank Transfer',
+      receiver_name: 'Kavitha Industrial Electricals',
+      account_number: 'SBIN00042189012'
+    },
+    {
+      id: 'MN-002',
+      maintenance_date: '2026-08-08',
+      maintenance_name: 'Coir Fibre Baler Hydraulic Press Oil Servicing',
+      maintenance_reason: 'Hydraulic cylinder seal kit replacement & 100L oil flush',
+      amount_spent: 12400.00,
+      days_taken: 1,
+      pay_mode: 'Cash',
+      receiver_name: null,
+      account_number: null
+    },
+    {
+      id: 'MN-003',
+      maintenance_date: '2026-08-11',
+      maintenance_name: 'Conveyor Belt Alignment & Roller Greasing',
+      maintenance_reason: 'Green husk feeder conveyor belt tracking drift correction',
+      amount_spent: 4500.00,
+      days_taken: 1,
+      pay_mode: 'UPI',
+      receiver_name: 'Perundurai Mill Spares',
+      account_number: 'perundurai@okaxis'
+    }
+  ];
+
+  for (const entry of maintenanceEntries) {
+    await dbQuery(
+      `INSERT INTO maintenance_register (id, maintenance_date, maintenance_name, maintenance_reason, amount_spent, days_taken, pay_mode, receiver_name, account_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [entry.id, entry.maintenance_date, entry.maintenance_name, entry.maintenance_reason, entry.amount_spent, entry.days_taken, entry.pay_mode, entry.receiver_name, entry.account_number]
+    );
+  }
+
+  console.log('[SEED] Master vehicles, Coir ERP data, and Maintenance records populated.');
 }

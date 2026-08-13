@@ -1,4 +1,4 @@
-import { dbQuery, getNextId, generateUuid } from '../config/db.js';
+import { dbQuery, getNextId, generateUuid } from '../../../config/db.js';
 
 export async function getSuppliers(req, res) {
   try {

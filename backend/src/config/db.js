@@ -199,6 +199,29 @@ export async function initDb() {
           created_at TEXT DEFAULT (datetime('now'))
       );
     `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS maintenance_register (
+          id TEXT PRIMARY KEY,
+          maintenance_date TEXT NOT NULL DEFAULT (date('now')),
+          payment_date TEXT DEFAULT (date('now')),
+          maintenance_name TEXT NOT NULL,
+          maintenance_reason TEXT,
+          amount_spent REAL NOT NULL DEFAULT 0.00,
+          days_taken INTEGER NOT NULL DEFAULT 1,
+          pay_mode TEXT NOT NULL DEFAULT 'Cash',
+          receiver_name TEXT,
+          account_number TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    try {
+      await runSqlite(`ALTER TABLE maintenance_register ADD COLUMN payment_date TEXT;`);
+    } catch (e) {
+      // Column already exists
+    }
+
     console.log('[DB] SQLite schema initialized.');
   }
 }
@@ -209,6 +232,7 @@ export async function getNextId(prefix) {
     let padLen = 3;
     if (prefix === 'RCT') { seqName = 'receipt_seq'; padLen = 4; }
     if (prefix === 'STL') { seqName = 'settlement_seq'; padLen = 3; }
+    if (prefix === 'MN') { seqName = 'maintenance_seq'; padLen = 3; }
 
     const res = await pgPool.query(`SELECT nextval('${seqName}') as val`);
     return `${prefix}-${String(res.rows[0].val).padStart(padLen, '0')}`;
@@ -217,6 +241,7 @@ export async function getNextId(prefix) {
     let padLen = 3;
     if (prefix === 'RCT') { table = 'receipts'; padLen = 4; }
     if (prefix === 'STL') { table = 'settlements'; padLen = 3; }
+    if (prefix === 'MN') { table = 'maintenance_register'; padLen = 3; }
 
     const row = await getSqlite(`SELECT id FROM ${table} ORDER BY created_at DESC, id DESC LIMIT 1`);
     let nextNum = 1;

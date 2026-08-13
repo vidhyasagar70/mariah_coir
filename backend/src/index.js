@@ -4,11 +4,12 @@ import dotenv from 'dotenv';
 import { initDb, dbQuery } from './config/db.js';
 import { seedData } from '../seed.js';
 
-import supplierRoutes from './routes/supplierRoutes.js';
-import receiptRoutes from './routes/receiptRoutes.js';
-import ledgerRoutes from './routes/ledgerRoutes.js';
-import settlementRoutes from './routes/settlementRoutes.js';
-import masterVehicleRoutes from './routes/masterVehicleRoutes.js';
+import supplierRoutes from './modules/supplier/routes/supplierRoutes.js';
+import receiptRoutes from './modules/supplier/routes/receiptRoutes.js';
+import ledgerRoutes from './modules/supplier/routes/ledgerRoutes.js';
+import settlementRoutes from './modules/supplier/routes/settlementRoutes.js';
+import masterVehicleRoutes from './modules/supplier/routes/masterVehicleRoutes.js';
+import maintenanceRoutes from './modules/maintenance/routes/maintenanceRoutes.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/receipts', receiptRoutes);
 app.use('/api/ledger', ledgerRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/master-vehicles', masterVehicleRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
 
 // Seed API endpoint
 app.post('/api/seed', async (req, res) => {
