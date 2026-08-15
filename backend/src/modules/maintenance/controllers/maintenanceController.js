@@ -3,7 +3,7 @@ import { dbQuery, getNextId } from '../../../config/db.js';
 // GET /api/maintenance - Fetch all maintenance register records with filters & summary
 export async function getMaintenanceLogs(req, res) {
   try {
-    const { pay_mode, search, from_date, to_date, date_from, date_to } = req.query;
+    const { pay_mode, status, search, from_date, to_date, date_from, date_to } = req.query;
     let query = `SELECT * FROM maintenance_register WHERE 1=1`;
     const params = [];
 
@@ -13,6 +13,11 @@ export async function getMaintenanceLogs(req, res) {
     if (pay_mode && pay_mode !== 'All') {
       params.push(pay_mode);
       query += ` AND pay_mode = $${params.length}`;
+    }
+
+    if (status && status !== 'All') {
+      params.push(status.toUpperCase());
+      query += ` AND UPPER(status) = $${params.length}`;
     }
 
     if (startDate) {
@@ -70,7 +75,8 @@ export async function createMaintenanceLog(req, res) {
       days_taken,
       pay_mode,
       receiver_name,
-      account_number
+      account_number,
+      status
     } = req.body;
 
     if (!maintenance_date || !maintenance_name || !receiver_name || amount_spent === undefined || !pay_mode) {
@@ -84,10 +90,12 @@ export async function createMaintenanceLog(req, res) {
     const id = await getNextId('MN');
     const payDate = payment_date || maintenance_date;
 
+    const validStatus = ['PAID', 'PENDING', 'CANCELLED'].includes(status?.toUpperCase()) ? status.toUpperCase() : 'PAID';
+
     await dbQuery(
       `INSERT INTO maintenance_register (
-        id, maintenance_date, payment_date, maintenance_name, maintenance_reason, amount_spent, days_taken, pay_mode, receiver_name, account_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        id, maintenance_date, payment_date, maintenance_name, maintenance_reason, amount_spent, days_taken, pay_mode, receiver_name, account_number, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         id,
         maintenance_date,
@@ -98,7 +106,8 @@ export async function createMaintenanceLog(req, res) {
         parseInt(days_taken || 1, 10),
         pay_mode,
         receiver_name.trim(),
-        pay_mode !== 'Cash' ? (account_number ? account_number.trim() : '') : null
+        pay_mode !== 'Cash' ? (account_number ? account_number.trim() : '') : null,
+        validStatus
       ]
     );
 

@@ -1,24 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './shared/components/Sidebar';
 import Header from './shared/components/Header';
-import SM01_Suppliers from './modules/supplier/pages/SM01_Suppliers';
-import TruckMaster from './modules/supplier/pages/TruckMaster';
-import SM02_Receipts from './modules/supplier/pages/SM02_Receipts';
-import SM03_Ledger from './modules/supplier/pages/SM03_Ledger';
-import SM04_Settlements from './modules/supplier/pages/SM04_Settlements';
 import MM01_MaintenanceForm from './modules/maintenance/pages/MM01_MaintenanceForm';
 import MM02_MaintenanceRecords from './modules/maintenance/pages/MM02_MaintenanceRecords';
+import MiscellaneousRecords from './modules/miscellaneous/pages/MiscellaneousRecords';
+import MiscellaneousEntry from './modules/miscellaneous/pages/MiscellaneousEntry';
+import EmployeeLanding from './modules/employee/pages/EmployeeLanding';
+import SupplyLanding from './modules/supply/pages/SupplyLanding';
 
 export default function App() {
   const getTabFromHash = () => {
-    const hash = window.location.hash.replace('#', '');
-    const validTabs = ['sm01', 'trucks', 'sm02', 'sm03', 'sm04', 'mm01', 'mm02'];
-    return validTabs.includes(hash) ? hash : 'sm01';
+    let rawHash = window.location.hash.replace(/^#\/?/, '').trim();
+
+    if (rawHash === 'miscellaneous/new' || rawHash === 'miscellaneous_new') {
+      return 'miscellaneous_new';
+    }
+
+    if (rawHash.startsWith('miscellaneous/edit/')) {
+      const id = rawHash.replace('miscellaneous/edit/', '');
+      return `miscellaneous_edit_${id}`;
+    }
+
+    if (rawHash.startsWith('miscellaneous_edit_')) {
+      return rawHash;
+    }
+
+    if (rawHash.startsWith('employee')) {
+      return rawHash;
+    }
+
+    if (rawHash.startsWith('supply')) {
+      return rawHash;
+    }
+
+    // Strip trailing or leading slashes
+    const normalized = rawHash.replace(/^\/+|\/+$/g, '');
+
+    const validTabs = ['mm01', 'mm02', 'miscellaneous', 'miscellaneous_new', 'employee', 'supply'];
+    const resolvedTab = validTabs.includes(normalized) ? normalized : 'employee';
+    
+    return resolvedTab;
   };
 
   const [activeTab, setActiveTabState] = useState(getTabFromHash);
   const [search, setSearch] = useState('');
-  const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -35,43 +60,21 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  const handleEditMiscellaneous = (id) => {
+    setActiveTab(`miscellaneous_edit_${id}`);
+  };
+
   const getHeaderMeta = () => {
+    if (activeTab.startsWith('miscellaneous_edit_')) {
+      return {
+        title: 'Miscellaneous Entry',
+        subtitle: 'Record a miscellaneous business expense',
+        addActionLabel: null,
+        onAdd: null
+      };
+    }
+
     switch (activeTab) {
-      case 'sm01':
-        return {
-          title: 'SM-01: Supplier Directory & Rate Matrix',
-          subtitle: '',
-          addActionLabel: 'Add Supplier',
-          onAdd: () => setIsAddSupplierModalOpen(true)
-        };
-      case 'trucks':
-        return {
-          title: 'Truck Master & Default Trip Rates',
-          subtitle: '',
-          addActionLabel: null,
-          onAdd: null
-        };
-      case 'sm02':
-        return {
-          title: 'SM-02: Material Receipts Management (Goods Inward)',
-          subtitle: '',
-          addActionLabel: null,
-          onAdd: null
-        };
-      case 'sm03':
-        return {
-          title: 'SM-03: Supplier Payment Ledger',
-          subtitle: '',
-          addActionLabel: null,
-          onAdd: null
-        };
-      case 'sm04':
-        return {
-          title: 'SM-04: Account Settlements Hub',
-          subtitle: '',
-          addActionLabel: null,
-          onAdd: null
-        };
       case 'mm01':
         return {
           title: 'Maintenance Entry',
@@ -86,8 +89,35 @@ export default function App() {
           addActionLabel: 'Add Maintenance Entry',
           onAdd: () => setActiveTab('mm01')
         };
+      case 'miscellaneous':
+        return {
+          title: 'Miscellaneous',
+          subtitle: 'Manage miscellaneous business expense records',
+          addActionLabel: '+ Miscellaneous Entry',
+          onAdd: () => setActiveTab('miscellaneous_new')
+        };
+      case 'miscellaneous_new':
+        return {
+          title: 'Miscellaneous Entry',
+          subtitle: 'Record a miscellaneous business expense',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'employee':
+        return {
+          title: 'Employee & Attendance Module',
+          subtitle: 'Manage company employees, positions, shifts, salaries, attendance & reports',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'supply':
       default:
-        return { title: 'Coir Manufacturing ERP', subtitle: '', addActionLabel: null, onAdd: null };
+        return {
+          title: 'Supply Management Module',
+          subtitle: 'Manage suppliers, raw materials, pricing, accounts & supply entries',
+          addActionLabel: null,
+          onAdd: null
+        };
     }
   };
 
@@ -117,19 +147,32 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-[#FAF7F2]" key={refreshKey}>
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-            {activeTab === 'sm01' && (
-              <SM01_Suppliers
-                search={search}
-                isAddModalOpen={isAddSupplierModalOpen}
-                setIsAddModalOpen={setIsAddSupplierModalOpen}
-              />
-            )}
-            {activeTab === 'trucks' && <TruckMaster />}
-            {activeTab === 'sm02' && <SM02_Receipts search={search} />}
-            {activeTab === 'sm03' && <SM03_Ledger search={search} />}
-            {activeTab === 'sm04' && <SM04_Settlements search={search} />}
             {activeTab === 'mm01' && <MM01_MaintenanceForm />}
             {activeTab === 'mm02' && <MM02_MaintenanceRecords search={search} />}
+            {activeTab === 'miscellaneous' && (
+              <MiscellaneousRecords
+                searchProp={search}
+                onNavigateToNew={() => setActiveTab('miscellaneous_new')}
+                onNavigateToEdit={handleEditMiscellaneous}
+              />
+            )}
+            {activeTab === 'miscellaneous_new' && (
+              <MiscellaneousEntry
+                onNavigateBack={() => setActiveTab('miscellaneous')}
+              />
+            )}
+            {activeTab.startsWith('miscellaneous_edit_') && (
+              <MiscellaneousEntry
+                editId={activeTab.replace('miscellaneous_edit_', '')}
+                onNavigateBack={() => setActiveTab('miscellaneous')}
+              />
+            )}
+            {(activeTab === 'employee' || activeTab.startsWith('employee_')) && (
+              <EmployeeLanding search={search} />
+            )}
+            {(activeTab === 'supply' || activeTab.startsWith('supply_')) && (
+              <SupplyLanding search={search} />
+            )}
           </div>
         </main>
       </div>

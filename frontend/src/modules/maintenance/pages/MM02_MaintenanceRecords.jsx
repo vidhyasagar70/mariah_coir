@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, Filter, Trash2, IndianRupee, Clock, CreditCard, Layers, Search, Calendar, RotateCcw } from 'lucide-react';
+import { Wrench, Filter, Trash2, IndianRupee, Clock, CreditCard, Layers, Search, Calendar, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../../shared/services/api';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 
@@ -13,6 +13,7 @@ export default function MM02_MaintenanceRecords({ search }) {
   const [localSearch, setLocalSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const fetchMaintenanceRecords = async () => {
     try {
@@ -23,6 +24,7 @@ export default function MM02_MaintenanceRecords({ search }) {
       if (payModeFilter !== 'All') params.pay_mode = payModeFilter;
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
+      if (statusFilter !== 'All') params.status = statusFilter;
 
       const res = await api.get('/maintenance', { params });
       setLogs(res.data.logs || []);
@@ -36,16 +38,17 @@ export default function MM02_MaintenanceRecords({ search }) {
 
   useEffect(() => {
     fetchMaintenanceRecords();
-  }, [search, localSearch, payModeFilter, fromDate, toDate]);
+  }, [search, localSearch, payModeFilter, fromDate, toDate, statusFilter]);
 
   const handleResetFilters = () => {
     setPayModeFilter('All');
+    setStatusFilter('All');
     setLocalSearch('');
     setFromDate('');
     setToDate('');
   };
 
-  const hasActiveFilters = payModeFilter !== 'All' || localSearch !== '' || fromDate !== '' || toDate !== '';
+  const hasActiveFilters = payModeFilter !== 'All' || statusFilter !== 'All' || localSearch !== '' || fromDate !== '' || toDate !== '';
 
   const handleDelete = async (id) => {
     if (!window.confirm(`Are you sure you want to delete maintenance record ${id}?`)) return;
@@ -69,6 +72,39 @@ export default function MM02_MaintenanceRecords({ search }) {
         return 'bg-emerald-50 text-emerald-800 border-emerald-200';
       default:
         return 'bg-stone-50 text-stone-700 border-stone-200';
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const st = (status || 'PAID').toUpperCase();
+    switch (st) {
+      case 'PAID':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <CheckCircle className="h-3 w-3" />
+            <span>PAID</span>
+          </span>
+        );
+      case 'PENDING':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <Clock className="h-3 w-3" />
+            <span>PENDING</span>
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+            <XCircle className="h-3 w-3" />
+            <span>CANCELLED</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-stone-50 text-stone-700 border border-stone-200">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -173,6 +209,21 @@ export default function MM02_MaintenanceRecords({ search }) {
             </select>
           </div>
 
+          {/* Status Filter */}
+          <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#D6C4B0]">
+            <Filter className="h-3.5 w-3.5 text-[#A8988B] shrink-0" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs text-[#2E1C11] bg-transparent focus:outline-none font-medium cursor-pointer"
+            >
+              <option value="All">All Status</option>
+              <option value="PAID">Paid</option>
+              <option value="PENDING">Pending</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
           {/* Reset Filters Button */}
           {hasActiveFilters && (
             <button
@@ -212,6 +263,7 @@ export default function MM02_MaintenanceRecords({ search }) {
                   <th className="p-3.5">AMOUNT SPENT</th>
                   <th className="p-3.5">PAYMENT MODE</th>
                   <th className="p-3.5">PAYMENT DATE</th>
+                  <th className="p-3.5">STATUS</th>
                   <th className="p-3.5">RECEIVER / ACCOUNT NO</th>
                   <th className="p-3.5 text-right">ACTIONS</th>
                 </tr>
@@ -262,6 +314,11 @@ export default function MM02_MaintenanceRecords({ search }) {
                     {/* PAYMENT DATE */}
                     <td className="p-3.5 text-[#6E594A] font-medium whitespace-nowrap">
                       {formatDate(item.payment_date || item.maintenance_date)}
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="p-3.5 whitespace-nowrap">
+                      {getStatusBadge(item.status)}
                     </td>
 
                     {/* RECEIVER / ACCOUNT NO */}

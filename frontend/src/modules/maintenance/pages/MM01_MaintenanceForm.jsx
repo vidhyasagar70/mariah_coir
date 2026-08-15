@@ -13,7 +13,8 @@ export default function MM01_MaintenanceForm() {
     days_taken: '1',
     pay_mode: 'Cash',
     receiver_name: '',
-    account_number: ''
+    account_number: '',
+    status: 'PAID'
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +62,8 @@ export default function MM01_MaintenanceForm() {
         days_taken: '1',
         pay_mode: 'Cash',
         receiver_name: '',
-        account_number: ''
+        account_number: '',
+        status: 'PAID'
       });
 
       setTimeout(() => {
@@ -253,6 +255,24 @@ export default function MM01_MaintenanceForm() {
               </div>
             </div>
           )}
+
+          {/* 9. Status */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 pt-1">
+            <label className="sm:w-52 text-[#3D281C] font-semibold shrink-0">Status *</label>
+            <div className="relative flex-1 max-w-md">
+              <CheckCircle2 className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
+              <select
+                required
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#D6C4B0] text-[#2E1C11] font-semibold focus:outline-none focus:border-[#965E36] transition-colors"
+              >
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
 
           {/* Form Submit & Cancel Actions */}
           <div className="pt-3 flex items-center justify-end space-x-3">

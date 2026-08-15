@@ -4,12 +4,16 @@ import dotenv from 'dotenv';
 import { initDb, dbQuery } from './config/db.js';
 import { seedData } from '../seed.js';
 
-import supplierRoutes from './modules/supplier/routes/supplierRoutes.js';
-import receiptRoutes from './modules/supplier/routes/receiptRoutes.js';
-import ledgerRoutes from './modules/supplier/routes/ledgerRoutes.js';
-import settlementRoutes from './modules/supplier/routes/settlementRoutes.js';
-import masterVehicleRoutes from './modules/supplier/routes/masterVehicleRoutes.js';
 import maintenanceRoutes from './modules/maintenance/routes/maintenanceRoutes.js';
+import miscellaneousRoutes from './modules/miscellaneous/routes/miscellaneousRoutes.js';
+import positionRoutes from './modules/employee/routes/positionRoutes.js';
+import genderRoutes from './modules/employee/routes/genderRoutes.js';
+import shiftRoutes from './modules/employee/routes/shiftRoutes.js';
+import employeeRoutes from './modules/employee/routes/employeeRoutes.js';
+import salaryRoutes from './modules/employee/routes/salaryRoutes.js';
+import attendanceRoutes from './modules/employee/routes/attendanceRoutes.js';
+import supplyRoutes from './modules/supply/routes/supplyRoutes.js';
+import supplierManagementRoutes from './modules/supplier/routes/supplierManagementRoutes.js';
 
 dotenv.config();
 
@@ -20,12 +24,17 @@ app.use(cors());
 app.use(express.json());
 
 // Mount API Routers
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/receipts', receiptRoutes);
-app.use('/api/ledger', ledgerRoutes);
-app.use('/api/settlements', settlementRoutes);
-app.use('/api/master-vehicles', masterVehicleRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/miscellaneous', miscellaneousRoutes);
+
+app.use('/api/positions', positionRoutes);
+app.use('/api/genders', genderRoutes);
+app.use('/api/shifts', shiftRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/salaries', salaryRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/supply', supplyRoutes);
+app.use('/api/supplier-management', supplierManagementRoutes);
 
 // Seed API endpoint
 app.post('/api/seed', async (req, res) => {
@@ -46,7 +55,7 @@ app.get('/api/health', (req, res) => {
 // Initialize Database & Start Server with Error Handling
 initDb().then(async () => {
   console.log('[SERVER] Database Initialized.');
-  const existing = await dbQuery('SELECT COUNT(*) as count FROM suppliers');
+  const existing = await dbQuery('SELECT COUNT(*) as count FROM positions');
   const count = parseInt(existing[0]?.count || existing[0]?.['COUNT(*)'] || 0, 10);
   if (count === 0) {
     console.log('[SERVER] Database empty. Populating initial seed data...');

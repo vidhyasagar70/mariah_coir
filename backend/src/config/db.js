@@ -122,6 +122,288 @@ export async function initDb() {
             linked_invoices TEXT[],
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS miscellaneous_entries (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL,
+            description VARCHAR(255) NOT NULL,
+            expense_date DATE NOT NULL,
+            amount NUMERIC(10, 2) NOT NULL,
+            payment_mode VARCHAR(20) NOT NULL CHECK (payment_mode IN ('ONLINE', 'OFFLINE')),
+            account_number VARCHAR(100),
+            bank_name VARCHAR(150),
+            transaction_reference VARCHAR(150),
+            payment_reference VARCHAR(150),
+            notes TEXT,
+            status VARCHAR(20) NOT NULL DEFAULT 'PAID' CHECK (status IN ('PAID', 'PENDING', 'CANCELLED')),
+            created_by UUID NOT NULL,
+            updated_by UUID,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS maintenance_register (
+            id VARCHAR(20) PRIMARY KEY,
+            maintenance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            payment_date DATE DEFAULT CURRENT_DATE,
+            maintenance_name VARCHAR(150) NOT NULL,
+            maintenance_reason TEXT,
+            amount_spent NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            days_taken INT NOT NULL DEFAULT 1,
+            pay_mode VARCHAR(50) NOT NULL DEFAULT 'Cash',
+            receiver_name VARCHAR(100),
+            account_number VARCHAR(100),
+            status VARCHAR(20) NOT NULL DEFAULT 'PAID' CHECK (status IN ('PAID', 'PENDING', 'CANCELLED')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS positions (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            status BOOLEAN DEFAULT TRUE,
+            created_by UUID,
+            updated_by UUID,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS genders (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(50) NOT NULL,
+            status BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS shifts (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(100) NOT NULL,
+            start_time VARCHAR(20) NOT NULL,
+            end_time VARCHAR(20) NOT NULL,
+            break_duration INT DEFAULT 0,
+            description TEXT,
+            status BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS employees (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            employee_code VARCHAR(50) NOT NULL,
+            full_name VARCHAR(150) NOT NULL,
+            gender_id UUID NOT NULL,
+            position_id UUID NOT NULL,
+            default_shift_id UUID NOT NULL,
+            date_of_birth DATE,
+            joining_date DATE NOT NULL,
+            phone VARCHAR(30),
+            address TEXT,
+            employment_status VARCHAR(30) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS salary_structures (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            employee_id UUID,
+            position_id UUID,
+            gender_id UUID,
+            shift_id UUID,
+            salary_frequency VARCHAR(20) NOT NULL,
+            salary_amount NUMERIC(12, 2) NOT NULL,
+            effective_from DATE NOT NULL,
+            effective_to DATE,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_by UUID,
+            updated_by UUID,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS attendance (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            attendance_date DATE NOT NULL,
+            employee_id UUID,
+            position_id UUID NOT NULL,
+            shift_id UUID NOT NULL,
+            attendance_status VARCHAR(30) NOT NULL,
+            count NUMERIC(5, 2) DEFAULT 1.0,
+            notes TEXT,
+            created_by UUID,
+            updated_by UUID,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS units (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(100) NOT NULL,
+            short_code VARCHAR(30) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS raw_materials (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(150) NOT NULL,
+            unit_id UUID,
+            unit VARCHAR(50) DEFAULT 'Load',
+            description TEXT,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS vehicle_types (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            vehicle_number VARCHAR(50) NOT NULL,
+            vehicle_type_id UUID NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS raw_material_prices (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            raw_material_id UUID NOT NULL,
+            vehicle_type_id UUID NOT NULL,
+            unit_id UUID NOT NULL,
+            price NUMERIC(18, 2) NOT NULL,
+            effective_from DATE NOT NULL,
+            effective_to DATE,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS suppliers (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supplier_number VARCHAR(50) NOT NULL,
+            supplier_name VARCHAR(150) NOT NULL,
+            company_name VARCHAR(150),
+            phone_number VARCHAR(30) NOT NULL,
+            contact_person VARCHAR(150) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS supplier_raw_materials (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supplier_id UUID NOT NULL,
+            raw_material_id UUID NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS supplier_vehicle_types (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supplier_id UUID NOT NULL,
+            vehicle_type_id UUID NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS supplier_vehicles (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supplier_id UUID NOT NULL,
+            vehicle_id UUID NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS supplier_account_transactions (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supplier_id UUID NOT NULL,
+            transaction_date DATE NOT NULL,
+            transaction_type VARCHAR(50) NOT NULL,
+            reference_type VARCHAR(50),
+            reference_id UUID,
+            debit NUMERIC(18, 2) DEFAULT 0,
+            credit NUMERIC(18, 2) DEFAULT 0,
+            amount NUMERIC(18, 2) NOT NULL,
+            description TEXT,
+            created_by UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS supply_entries (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            supply_number VARCHAR(50) NOT NULL,
+            date DATE NOT NULL,
+            supplier_id UUID NOT NULL,
+            vehicle_type_id UUID NOT NULL,
+            vehicle_id UUID NOT NULL,
+            raw_material_id UUID NOT NULL,
+            unit_id UUID NOT NULL,
+            quantity NUMERIC(18, 3) NOT NULL,
+            price NUMERIC(18, 2) NOT NULL,
+            total_amount NUMERIC(18, 2) NOT NULL,
+            previous_advance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+            amount_adjusted NUMERIC(18, 2) NOT NULL DEFAULT 0,
+            remaining_advance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+            remaining_due NUMERIC(18, 2) NOT NULL DEFAULT 0,
+            notes TEXT,
+            status VARCHAR(30) NOT NULL DEFAULT 'Confirmed',
+            created_by UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            updated_by UUID,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stock_movements (
+            id UUID PRIMARY KEY,
+            company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+            raw_material_id UUID NOT NULL,
+            unit_id UUID NOT NULL,
+            movement_type VARCHAR(20) NOT NULL,
+            quantity NUMERIC(18, 3) NOT NULL,
+            reference_type VARCHAR(50) NOT NULL DEFAULT 'SUPPLY_ENTRY',
+            reference_id UUID NOT NULL,
+            supplier_id UUID,
+            vehicle_id UUID,
+            movement_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       `);
       console.log('[DB] PostgreSQL schema initialized.');
     } finally {
@@ -129,23 +411,129 @@ export async function initDb() {
     }
   } else {
     await runSqlite(`
-      CREATE TABLE IF NOT EXISTS master_vehicles (
+      CREATE TABLE IF NOT EXISTS units (
           id TEXT PRIMARY KEY,
-          vehicle_type TEXT NOT NULL UNIQUE,
-          default_rate REAL NOT NULL DEFAULT 0.00,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          name TEXT NOT NULL,
+          short_code TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    try {
+      const rmInfo = await allSqlite(`PRAGMA table_info(raw_materials)`);
+      if (rmInfo.length > 0 && !rmInfo.some(c => c.name === 'unit_id')) {
+        await runSqlite(`ALTER TABLE raw_materials ADD COLUMN unit_id TEXT;`);
+      }
+    } catch (e) {}
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS raw_materials (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          name TEXT NOT NULL,
+          unit_id TEXT,
+          unit TEXT DEFAULT 'Load',
+          description TEXT,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS vehicle_types (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          name TEXT NOT NULL,
+          description TEXT,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS vehicles (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          vehicle_number TEXT NOT NULL,
+          vehicle_type_id TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS raw_material_prices (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          raw_material_id TEXT NOT NULL,
+          vehicle_type_id TEXT NOT NULL,
+          unit_id TEXT NOT NULL,
+          price REAL NOT NULL,
+          effective_from TEXT NOT NULL,
+          effective_to TEXT,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    try {
+      const supInfo = await allSqlite(`PRAGMA table_info(suppliers)`);
+      if (supInfo.length > 0 && !supInfo.some(c => c.name === 'supplier_number')) {
+        await runSqlite(`DROP TABLE suppliers;`);
+      }
+    } catch (e) {}
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS suppliers (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supplier_number TEXT NOT NULL,
+          supplier_name TEXT NOT NULL,
+          company_name TEXT,
+          phone_number TEXT NOT NULL,
+          contact_person TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    try {
+      const svInfo = await allSqlite(`PRAGMA table_info(supplier_vehicles)`);
+      if (svInfo.length > 0 && !svInfo.some(c => c.name === 'vehicle_id')) {
+        await runSqlite(`DROP TABLE supplier_vehicles;`);
+      }
+    } catch (e) {}
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supplier_raw_materials (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supplier_id TEXT NOT NULL,
+          raw_material_id TEXT NOT NULL,
           created_at TEXT DEFAULT (datetime('now'))
       );
     `);
 
     await runSqlite(`
-      CREATE TABLE IF NOT EXISTS suppliers (
+      CREATE TABLE IF NOT EXISTS supplier_vehicle_types (
           id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          category TEXT NOT NULL CHECK (category IN ('Raw Material', 'Fuel', 'Utility')),
-          company_name TEXT,
-          contact_person TEXT,
-          contact_number TEXT NOT NULL,
-          status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supplier_id TEXT NOT NULL,
+          vehicle_type_id TEXT NOT NULL,
           created_at TEXT DEFAULT (datetime('now'))
       );
     `);
@@ -153,74 +541,82 @@ export async function initDb() {
     await runSqlite(`
       CREATE TABLE IF NOT EXISTS supplier_vehicles (
           id TEXT PRIMARY KEY,
-          supplier_id TEXT REFERENCES suppliers(id) ON DELETE CASCADE,
-          vehicle_type TEXT NOT NULL,
-          rate_per_trip REAL NOT NULL DEFAULT 0.00
-      );
-    `);
-
-    await runSqlite(`
-      CREATE TABLE IF NOT EXISTS receipts (
-          id TEXT PRIMARY KEY,
-          supplier_id TEXT REFERENCES suppliers(id),
-          material_type TEXT NOT NULL CHECK (material_type IN ('Green Husk', 'Brown Husk', 'Water', 'Diesel')),
-          vehicle_type TEXT NOT NULL,
-          receipt_date TEXT NOT NULL DEFAULT (date('now')),
-          trip_count INTEGER NOT NULL DEFAULT 1,
-          rate_per_trip REAL NOT NULL,
-          total_amount REAL NOT NULL,
-          status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Partial', 'Settled')),
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supplier_id TEXT NOT NULL,
+          vehicle_id TEXT NOT NULL,
           created_at TEXT DEFAULT (datetime('now'))
       );
     `);
 
     await runSqlite(`
-      CREATE TABLE IF NOT EXISTS supplier_ledger (
+      CREATE TABLE IF NOT EXISTS supplier_account_transactions (
           id TEXT PRIMARY KEY,
-          supplier_id TEXT REFERENCES suppliers(id),
-          transaction_date TEXT NOT NULL DEFAULT (date('now')),
-          transaction_type TEXT NOT NULL CHECK (transaction_type IN ('Advance Paid', 'Delivery Due')),
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supplier_id TEXT NOT NULL,
+          transaction_date TEXT NOT NULL,
+          transaction_type TEXT NOT NULL,
+          reference_type TEXT,
+          reference_id TEXT,
+          debit REAL DEFAULT 0,
+          credit REAL DEFAULT 0,
           amount REAL NOT NULL,
-          balance_impact TEXT NOT NULL CHECK (balance_impact IN ('Owner Paid', 'Owner Owes')),
-          note TEXT,
-          created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
-
-    await runSqlite(`
-      CREATE TABLE IF NOT EXISTS settlements (
-          id TEXT PRIMARY KEY,
-          supplier_id TEXT REFERENCES suppliers(id),
-          settlement_date TEXT NOT NULL DEFAULT (date('now')),
-          settlement_type TEXT CHECK (settlement_type IN ('Partial', 'Full Settlement')),
-          amount_paid REAL NOT NULL,
-          remaining_balance REAL DEFAULT 0.00,
-          linked_invoices TEXT,
-          created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
-
-    await runSqlite(`
-      CREATE TABLE IF NOT EXISTS maintenance_register (
-          id TEXT PRIMARY KEY,
-          maintenance_date TEXT NOT NULL DEFAULT (date('now')),
-          payment_date TEXT DEFAULT (date('now')),
-          maintenance_name TEXT NOT NULL,
-          maintenance_reason TEXT,
-          amount_spent REAL NOT NULL DEFAULT 0.00,
-          days_taken INTEGER NOT NULL DEFAULT 1,
-          pay_mode TEXT NOT NULL DEFAULT 'Cash',
-          receiver_name TEXT,
-          account_number TEXT,
+          description TEXT,
+          created_by TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
           created_at TEXT DEFAULT (datetime('now'))
       );
     `);
 
     try {
-      await runSqlite(`ALTER TABLE maintenance_register ADD COLUMN payment_date TEXT;`);
-    } catch (e) {
-      // Column already exists
-    }
+      const seInfo = await allSqlite(`PRAGMA table_info(supply_entries)`);
+      if (seInfo.length > 0 && !seInfo.some(c => c.name === 'supply_number')) {
+        await runSqlite(`DROP TABLE supply_entries;`);
+      }
+    } catch (e) {}
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_entries (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          supply_number TEXT NOT NULL,
+          date TEXT NOT NULL,
+          supplier_id TEXT NOT NULL,
+          vehicle_type_id TEXT NOT NULL,
+          vehicle_id TEXT NOT NULL,
+          raw_material_id TEXT NOT NULL,
+          unit_id TEXT NOT NULL,
+          quantity REAL NOT NULL,
+          price REAL NOT NULL,
+          total_amount REAL NOT NULL,
+          previous_advance REAL NOT NULL DEFAULT 0,
+          amount_adjusted REAL NOT NULL DEFAULT 0,
+          remaining_advance REAL NOT NULL DEFAULT 0,
+          remaining_due REAL NOT NULL DEFAULT 0,
+          notes TEXT,
+          status TEXT NOT NULL DEFAULT 'Confirmed',
+          created_by TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          updated_by TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS stock_movements (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          raw_material_id TEXT NOT NULL,
+          unit_id TEXT NOT NULL,
+          movement_type TEXT NOT NULL,
+          quantity REAL NOT NULL,
+          reference_type TEXT NOT NULL DEFAULT 'SUPPLY_ENTRY',
+          reference_id TEXT NOT NULL,
+          supplier_id TEXT,
+          vehicle_id TEXT,
+          movement_date TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
 
     console.log('[DB] SQLite schema initialized.');
   }
@@ -233,6 +629,7 @@ export async function getNextId(prefix) {
     if (prefix === 'RCT') { seqName = 'receipt_seq'; padLen = 4; }
     if (prefix === 'STL') { seqName = 'settlement_seq'; padLen = 3; }
     if (prefix === 'MN') { seqName = 'maintenance_seq'; padLen = 3; }
+    if (prefix === 'SE') { seqName = 'supply_entry_seq'; padLen = 4; }
 
     const res = await pgPool.query(`SELECT nextval('${seqName}') as val`);
     return `${prefix}-${String(res.rows[0].val).padStart(padLen, '0')}`;
@@ -242,6 +639,7 @@ export async function getNextId(prefix) {
     if (prefix === 'RCT') { table = 'receipts'; padLen = 4; }
     if (prefix === 'STL') { table = 'settlements'; padLen = 3; }
     if (prefix === 'MN') { table = 'maintenance_register'; padLen = 3; }
+    if (prefix === 'SE') { table = 'supply_entries'; padLen = 4; }
 
     const row = await getSqlite(`SELECT id FROM ${table} ORDER BY created_at DESC, id DESC LIMIT 1`);
     let nextNum = 1;
@@ -262,7 +660,7 @@ export async function dbQuery(text, params = []) {
     const res = await pgPool.query(text, params);
     return res.rows;
   } else {
-    const sqliteText = text.replace(/\$(\d+)/g, '?');
+    const sqliteText = text.replace(/\$\d+/g, '?');
     const trimmed = text.trim().toUpperCase();
     if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
       const rows = await allSqlite(sqliteText, params);

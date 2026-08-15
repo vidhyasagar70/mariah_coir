@@ -11,6 +11,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       desc: 'KPIs & Supply Summary'
     },
     {
+      id: 'supplier-management',
+      label: 'Supplier Management',
+      code: 'SM-MAIN',
+      icon: Users,
+      desc: 'Raw Material, Pricing & Ledger'
+    },
+    {
       id: 'sm01',
       label: 'Supplier Directory',
       code: 'SM-01',

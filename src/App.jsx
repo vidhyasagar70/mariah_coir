@@ -6,9 +6,10 @@ import SupplierList from './components/SM01_Suppliers/SupplierList';
 import ReceiptList from './components/SM02_Receipts/ReceiptList';
 import LedgerView from './components/SM03_Ledger/LedgerView';
 import SettlementHub from './components/SM04_Settlements/SettlementHub';
+import SupplierManagementModule from './components/SupplierManagement/SupplierManagementModule';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('supplier-management');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleGlobalRefresh = () => {
@@ -29,6 +30,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-6 bg-slate-950/90">
           <div className="max-w-7xl mx-auto space-y-6" key={refreshKey}>
             {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'supplier-management' && <SupplierManagementModule />}
             {activeTab === 'sm01' && <SupplierList />}
             {activeTab === 'sm02' && <ReceiptList />}
             {activeTab === 'sm03' && <LedgerView />}
