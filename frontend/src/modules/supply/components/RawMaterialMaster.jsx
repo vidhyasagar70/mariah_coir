@@ -28,9 +28,15 @@ export default function RawMaterialMaster() {
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
+    const finalUnit = form.unit === 'Other' ? (form.custom_unit || 'Custom Unit') : form.unit;
+    const payload = {
+      ...form,
+      unit: finalUnit,
+      status: true
+    };
     const method = editItem ? 'PUT' : 'POST';
     const url = editItem ? `${API}/${editItem.id}` : API;
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, status: true }) });
+    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     setShowModal(false);
     fetchData();
   };
@@ -123,15 +129,32 @@ export default function RawMaterialMaster() {
               </div>
               <div>
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Unit</label>
-                <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-                  <option value="Load">Load</option>
-                  <option value="Trip">Trip</option>
-                  <option value="Ton">Ton</option>
-                  <option value="Kg">Kg</option>
-                  <option value="Litre">Litre</option>
-                  <option value="Bundle">Bundle</option>
-                </select>
+                <div className="flex space-x-2">
+                  <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}
+                    className="w-1/2 px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none cursor-pointer">
+                    <option value="Load">Load</option>
+                    <option value="Trip">Trip</option>
+                    <option value="Ton">Ton</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Litre">Litre</option>
+                    <option value="Bundle">Bundle</option>
+                    <option value="Other">Other / Custom</option>
+                  </select>
+                  {form.unit === 'Other' && (
+                    <input
+                      type="text"
+                      placeholder="Enter custom unit..."
+                      value={form.custom_unit || ''}
+                      onChange={e => setForm({...form, custom_unit: e.target.value})}
+                      className="w-1/2 px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none"
+                    />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Quality Specification / Grade</label>
+                <input value={form.custom_specifications || ''} onChange={e => setForm({...form, custom_specifications: e.target.value})} placeholder="e.g. Moisture < 15%, Grade-A husk, 5000L tank"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Description</label>

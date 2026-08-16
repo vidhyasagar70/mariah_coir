@@ -196,6 +196,11 @@ export default function PricingMaster() {
                     className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
                 </div>
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Rate Label / Seasonal Tag / Remarks</label>
+                <input value={form.notes || ''} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Monsoon Rate Surge / Festival Discount"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+              </div>
             </div>
             <div className="flex justify-end space-x-2 pt-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-[#5C3B21] hover:bg-[#E2D2C2] transition cursor-pointer">Cancel</button>

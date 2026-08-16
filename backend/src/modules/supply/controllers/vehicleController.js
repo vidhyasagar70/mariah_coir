@@ -41,15 +41,15 @@ export async function getVehicles(req, res) {
 // POST /api/supply/vehicles
 export async function createVehicle(req, res) {
   try {
-    const { supplier_id, vehicle_type_id, vehicle_number, notes } = req.body;
+    const { supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info } = req.body;
     if (!supplier_id || !vehicle_type_id) {
       return res.status(400).json({ error: 'Supplier and Vehicle Type are required.' });
     }
 
     const id = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, status) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, supplier_id, vehicle_type_id, vehicle_number || '', notes || '', 1]
+      `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, supplier_id, vehicle_type_id, vehicle_number || '', notes || '', custom_driver_info || '', 1]
     );
 
     // Return with join data
@@ -71,11 +71,11 @@ export async function createVehicle(req, res) {
 export async function updateVehicle(req, res) {
   try {
     const { id } = req.params;
-    const { supplier_id, vehicle_type_id, vehicle_number, notes, status } = req.body;
+    const { supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status } = req.body;
 
     await dbQuery(
-      `UPDATE supply_vehicles SET supplier_id = $1, vehicle_type_id = $2, vehicle_number = $3, notes = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
-      [supplier_id, vehicle_type_id, vehicle_number || '', notes || '', status !== undefined ? (status ? 1 : 0) : 1, id]
+      `UPDATE supply_vehicles SET supplier_id = $1, vehicle_type_id = $2, vehicle_number = $3, notes = $4, custom_driver_info = $5, status = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
+      [supplier_id, vehicle_type_id, vehicle_number || '', notes || '', custom_driver_info || '', status !== undefined ? (status ? 1 : 0) : 1, id]
     );
 
     const updated = await dbQuery(`

@@ -78,15 +78,15 @@ export async function resolvePrice(req, res) {
 // POST /api/supply/pricing
 export async function createPricing(req, res) {
   try {
-    const { raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to } = req.body;
+    const { raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to, notes } = req.body;
     if (!raw_material_id || !vehicle_type_id || !rate_per_unit || !effective_from) {
       return res.status(400).json({ error: 'Raw material, vehicle type, rate, and effective date are required.' });
     }
 
     const id = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_pricing (id, raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, raw_material_id, vehicle_type_id, parseFloat(rate_per_unit), effective_from, effective_to || null, 'Active']
+      `INSERT INTO supply_pricing (id, raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to, notes, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, raw_material_id, vehicle_type_id, parseFloat(rate_per_unit), effective_from, effective_to || null, notes || '', 'Active']
     );
 
     const created = await dbQuery(`
@@ -107,11 +107,11 @@ export async function createPricing(req, res) {
 export async function updatePricing(req, res) {
   try {
     const { id } = req.params;
-    const { raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to, status } = req.body;
+    const { raw_material_id, vehicle_type_id, rate_per_unit, effective_from, effective_to, notes, status } = req.body;
 
     await dbQuery(
-      `UPDATE supply_pricing SET raw_material_id = $1, vehicle_type_id = $2, rate_per_unit = $3, effective_from = $4, effective_to = $5, status = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
-      [raw_material_id, vehicle_type_id, parseFloat(rate_per_unit), effective_from, effective_to || null, status || 'Active', id]
+      `UPDATE supply_pricing SET raw_material_id = $1, vehicle_type_id = $2, rate_per_unit = $3, effective_from = $4, effective_to = $5, notes = $6, status = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8`,
+      [raw_material_id, vehicle_type_id, parseFloat(rate_per_unit), effective_from, effective_to || null, notes || '', status || 'Active', id]
     );
 
     const updated = await dbQuery(`

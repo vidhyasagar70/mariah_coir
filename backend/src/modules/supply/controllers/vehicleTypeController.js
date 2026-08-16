@@ -32,7 +32,7 @@ export async function getVehicleTypes(req, res) {
 // POST /api/supply/vehicle-types
 export async function createVehicleType(req, res) {
   try {
-    const { name, capacity, description } = req.body;
+    const { name, capacity, description, custom_alias } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Vehicle type name is required.' });
     }
@@ -44,8 +44,8 @@ export async function createVehicleType(req, res) {
 
     const id = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_vehicle_types (id, name, capacity, description, status) VALUES ($1, $2, $3, $4, $5)`,
-      [id, name.trim(), capacity || '', description || '', 1]
+      `INSERT INTO supply_vehicle_types (id, name, capacity, description, custom_alias, status) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, name.trim(), capacity || '', description || '', custom_alias || '', 1]
     );
 
     const created = await dbQuery(`SELECT * FROM supply_vehicle_types WHERE id = $1`, [id]);
@@ -60,11 +60,11 @@ export async function createVehicleType(req, res) {
 export async function updateVehicleType(req, res) {
   try {
     const { id } = req.params;
-    const { name, capacity, description, status } = req.body;
+    const { name, capacity, description, custom_alias, status } = req.body;
 
     await dbQuery(
-      `UPDATE supply_vehicle_types SET name = $1, capacity = $2, description = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
-      [name?.trim(), capacity || '', description || '', status !== undefined ? (status ? 1 : 0) : 1, id]
+      `UPDATE supply_vehicle_types SET name = $1, capacity = $2, description = $3, custom_alias = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+      [name?.trim(), capacity || '', description || '', custom_alias || '', status !== undefined ? (status ? 1 : 0) : 1, id]
     );
 
     const updated = await dbQuery(`SELECT * FROM supply_vehicle_types WHERE id = $1`, [id]);

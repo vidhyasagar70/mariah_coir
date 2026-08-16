@@ -97,17 +97,18 @@ export async function createAccount(req, res) {
     if (openBal !== 0) {
       const ledgerId = generateUuid();
       const isDebit = openBal > 0;
+      const txDate = new Date().toISOString().split('T')[0];
       await dbQuery(
-        `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, transaction_type, description, debit, credit, running_balance)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, entry_date, transaction_type, entry_type, description, debit, credit, running_balance, amount, balance_after)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           ledgerId, id, supplier_id,
-          new Date().toISOString().split('T')[0],
-          'Opening Balance',
+          txDate, txDate,
+          'Opening Balance', 'Opening Balance',
           'Initial opening balance',
           isDebit ? Math.abs(openBal) : 0,
           isDebit ? 0 : Math.abs(openBal),
-          openBal
+          openBal, Math.abs(openBal), openBal
         ]
       );
     }
@@ -141,6 +142,7 @@ export async function recordAdvance(req, res) {
 
     const advAmount = parseFloat(amount);
     const newBalance = parseFloat(account[0].current_balance) - advAmount; // Advance reduces payable
+    const txDate = transaction_date || new Date().toISOString().split('T')[0];
 
     // Update account balance
     await dbQuery(`UPDATE supply_accounts SET current_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [newBalance, id]);
@@ -148,14 +150,14 @@ export async function recordAdvance(req, res) {
     // Create ledger entry
     const ledgerId = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, transaction_type, description, debit, credit, running_balance)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, entry_date, transaction_type, entry_type, description, debit, credit, running_balance, amount, balance_after)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         ledgerId, id, account[0].supplier_id,
-        transaction_date || new Date().toISOString().split('T')[0],
-        'Advance Payment',
+        txDate, txDate,
+        'Advance Payment', 'Advance Payment',
         description || 'Advance payment to supplier',
-        0, advAmount, newBalance
+        0, advAmount, newBalance, advAmount, newBalance
       ]
     );
 
@@ -188,19 +190,20 @@ export async function recordPayment(req, res) {
 
     const payAmount = parseFloat(amount);
     const newBalance = parseFloat(account[0].current_balance) - payAmount;
+    const txDate = transaction_date || new Date().toISOString().split('T')[0];
 
     await dbQuery(`UPDATE supply_accounts SET current_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [newBalance, id]);
 
     const ledgerId = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, transaction_type, description, debit, credit, running_balance)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, entry_date, transaction_type, entry_type, description, debit, credit, running_balance, amount, balance_after)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         ledgerId, id, account[0].supplier_id,
-        transaction_date || new Date().toISOString().split('T')[0],
-        'Payment',
+        txDate, txDate,
+        'Payment', 'Payment',
         description || 'Payment to supplier',
-        0, payAmount, newBalance
+        0, payAmount, newBalance, payAmount, newBalance
       ]
     );
 

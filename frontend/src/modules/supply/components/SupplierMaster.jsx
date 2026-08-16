@@ -9,7 +9,7 @@ export default function SupplierMaster() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', contact_person: '', phone: '', address: '' });
+  const [form, setForm] = useState({ name: '', contact_person: '', phone: '', address: '', custom_notes: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -23,10 +23,10 @@ export default function SupplierMaster() {
 
   useEffect(() => { fetchData(); }, [search]);
 
-  const openCreate = () => { setEditItem(null); setForm({ name: '', contact_person: '', phone: '', address: '' }); setShowModal(true); };
+  const openCreate = () => { setEditItem(null); setForm({ name: '', contact_person: '', phone: '', address: '', custom_notes: '' }); setShowModal(true); };
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, contact_person: item.contact_person || '', phone: item.phone || '', address: item.address || '' });
+    setForm({ name: item.name, contact_person: item.contact_person || '', phone: item.phone || '', address: item.address || '', custom_notes: item.custom_notes || '' });
     setShowModal(true);
   };
 
@@ -165,6 +165,11 @@ export default function SupplierMaster() {
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Address</label>
                 <textarea value={form.address} onChange={e => setForm({...form, address: e.target.value})} rows={2} placeholder="Full address..."
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none resize-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Notes / Vendor Remarks</label>
+                <input value={form.custom_notes} onChange={e => setForm({...form, custom_notes: e.target.value})} placeholder="e.g. Preferred husk quality / GST Tax ID / Payment terms"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
               </div>
             </div>
             <div className="flex justify-end space-x-2 pt-2">

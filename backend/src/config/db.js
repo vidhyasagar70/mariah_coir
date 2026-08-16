@@ -494,6 +494,125 @@ export async function initDb() {
             movement_date DATE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS supply_vehicle_types (
+            id VARCHAR(50) PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            capacity VARCHAR(50),
+            description TEXT,
+            status INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS supply_suppliers (
+            id VARCHAR(50) PRIMARY KEY,
+            supplier_code VARCHAR(30) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            contact_person VARCHAR(100),
+            phone VARCHAR(20),
+            address TEXT,
+            custom_notes TEXT,
+            status VARCHAR(20) DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+        ALTER TABLE supply_suppliers ADD COLUMN IF NOT EXISTS custom_notes TEXT;
+
+        CREATE TABLE IF NOT EXISTS supply_vehicle_types (
+            id VARCHAR(50) PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            capacity VARCHAR(50),
+            description TEXT,
+            custom_alias TEXT,
+            status INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+        ALTER TABLE supply_vehicle_types ADD COLUMN IF NOT EXISTS custom_alias TEXT;
+
+        CREATE TABLE IF NOT EXISTS supply_vehicles (
+            id VARCHAR(50) PRIMARY KEY,
+            supplier_id VARCHAR(50),
+            vehicle_type_id VARCHAR(50),
+            vehicle_number VARCHAR(50),
+            notes TEXT,
+            custom_driver_info TEXT,
+            status INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+        ALTER TABLE supply_vehicles ADD COLUMN IF NOT EXISTS custom_driver_info TEXT;
+
+        CREATE TABLE IF NOT EXISTS raw_materials (
+            id VARCHAR(50) PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            unit VARCHAR(50),
+            description TEXT,
+            custom_specifications TEXT,
+            status INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+        ALTER TABLE raw_materials ADD COLUMN IF NOT EXISTS custom_specifications TEXT;
+
+        CREATE TABLE IF NOT EXISTS supply_vehicles (
+            id VARCHAR(50) PRIMARY KEY,
+            supplier_id VARCHAR(50),
+            vehicle_type_id VARCHAR(50),
+            vehicle_number VARCHAR(50),
+            notes TEXT,
+            status INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS supply_pricing (
+            id VARCHAR(50) PRIMARY KEY,
+            raw_material_id VARCHAR(50),
+            vehicle_type_id VARCHAR(50),
+            rate_per_unit NUMERIC(10, 2) NOT NULL,
+            effective_from DATE NOT NULL,
+            effective_to DATE,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS supply_accounts (
+            id VARCHAR(50) PRIMARY KEY,
+            supplier_id VARCHAR(50),
+            account_type VARCHAR(50) DEFAULT 'Payable',
+            opening_balance NUMERIC(12, 2) DEFAULT 0.00,
+            opening_advance NUMERIC(12, 2) DEFAULT 0.00,
+            current_balance NUMERIC(12, 2) DEFAULT 0.00,
+            status VARCHAR(20) DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
+        );
+        ALTER TABLE supply_accounts ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'Payable';
+        ALTER TABLE supply_accounts ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12, 2) DEFAULT 0.00;
+
+        CREATE TABLE IF NOT EXISTS supply_account_ledger (
+            id VARCHAR(50) PRIMARY KEY,
+            account_id VARCHAR(50),
+            supplier_id VARCHAR(50),
+            entry_date DATE NOT NULL,
+            entry_type VARCHAR(50) NOT NULL,
+            amount NUMERIC(12, 2) NOT NULL,
+            balance_after NUMERIC(12, 2) NOT NULL,
+            reference_id VARCHAR(50),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       `);
       console.log('[DB] PostgreSQL schema initialized.');
     } finally {
@@ -806,6 +925,166 @@ export async function initDb() {
           amount REAL NOT NULL,
           payment_mode TEXT DEFAULT 'Cash',
           beneficiary_name TEXT,
+          notes TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_vehicle_types (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          capacity TEXT,
+          description TEXT,
+          status INTEGER DEFAULT 1,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_suppliers (
+          id TEXT PRIMARY KEY,
+          supplier_code TEXT NOT NULL,
+          name TEXT NOT NULL,
+          contact_person TEXT,
+          phone TEXT,
+          address TEXT,
+          custom_notes TEXT,
+          status TEXT DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    try {
+      const ssInfo = await allSqlite(`PRAGMA table_info(supply_suppliers)`);
+      if (ssInfo.length > 0 && !ssInfo.some(c => c.name === 'custom_notes')) {
+        await runSqlite(`ALTER TABLE supply_suppliers ADD COLUMN custom_notes TEXT;`);
+      }
+      const svtInfo = await allSqlite(`PRAGMA table_info(supply_vehicle_types)`);
+      if (svtInfo.length > 0 && !svtInfo.some(c => c.name === 'custom_alias')) {
+        await runSqlite(`ALTER TABLE supply_vehicle_types ADD COLUMN custom_alias TEXT;`);
+      }
+      const svInfo = await allSqlite(`PRAGMA table_info(supply_vehicles)`);
+      if (svInfo.length > 0 && !svInfo.some(c => c.name === 'custom_driver_info')) {
+        await runSqlite(`ALTER TABLE supply_vehicles ADD COLUMN custom_driver_info TEXT;`);
+      }
+      const rmInfo2 = await allSqlite(`PRAGMA table_info(raw_materials)`);
+      if (rmInfo2.length > 0 && !rmInfo2.some(c => c.name === 'custom_specifications')) {
+        await runSqlite(`ALTER TABLE raw_materials ADD COLUMN custom_specifications TEXT;`);
+      }
+    } catch (e) { console.error('SQLite alter check error:', e); }
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_vehicles (
+          id TEXT PRIMARY KEY,
+          supplier_id TEXT,
+          vehicle_type_id TEXT,
+          vehicle_number TEXT,
+          notes TEXT,
+          status INTEGER DEFAULT 1,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_pricing (
+          id TEXT PRIMARY KEY,
+          raw_material_id TEXT,
+          vehicle_type_id TEXT,
+          rate_per_unit REAL NOT NULL,
+          effective_from TEXT NOT NULL,
+          effective_to TEXT,
+          notes TEXT,
+          status TEXT DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_accounts (
+          id TEXT PRIMARY KEY,
+          supplier_id TEXT,
+          account_type TEXT DEFAULT 'Payable',
+          opening_balance REAL DEFAULT 0.00,
+          opening_advance REAL DEFAULT 0.00,
+          current_balance REAL DEFAULT 0.00,
+          status TEXT DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
+    try {
+      const saInfo = await allSqlite(`PRAGMA table_info(supply_accounts)`);
+      if (saInfo.length > 0 && !saInfo.some(c => c.name === 'account_type')) {
+        await runSqlite(`ALTER TABLE supply_accounts ADD COLUMN account_type TEXT DEFAULT 'Payable';`);
+      }
+      if (saInfo.length > 0 && !saInfo.some(c => c.name === 'opening_balance')) {
+        await runSqlite(`ALTER TABLE supply_accounts ADD COLUMN opening_balance REAL DEFAULT 0.00;`);
+      }
+
+      const spInfo = await allSqlite(`PRAGMA table_info(supply_pricing)`);
+      if (spInfo.length > 0 && !spInfo.some(c => c.name === 'status')) {
+        await runSqlite(`ALTER TABLE supply_pricing ADD COLUMN status TEXT DEFAULT 'Active';`);
+      }
+
+      const salInfo = await allSqlite(`PRAGMA table_info(supply_account_ledger)`);
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'transaction_date')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN transaction_date TEXT;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'transaction_type')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN transaction_type TEXT;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'description')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN description TEXT;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'debit')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN debit REAL DEFAULT 0;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'credit')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN credit REAL DEFAULT 0;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'running_balance')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN running_balance REAL DEFAULT 0;`);
+      }
+      if (salInfo.length > 0 && !salInfo.some(c => c.name === 'reference_type')) {
+        await runSqlite(`ALTER TABLE supply_account_ledger ADD COLUMN reference_type TEXT;`);
+      }
+
+      const seInfo = await allSqlite(`PRAGMA table_info(supply_entries)`);
+      if (seInfo.length > 0 && !seInfo.some(c => c.name === 'entry_code')) {
+        await runSqlite(`ALTER TABLE supply_entries ADD COLUMN entry_code TEXT;`);
+      }
+      if (seInfo.length > 0 && !seInfo.some(c => c.name === 'entry_date')) {
+        await runSqlite(`ALTER TABLE supply_entries ADD COLUMN entry_date TEXT;`);
+      }
+      if (seInfo.length > 0 && !seInfo.some(c => c.name === 'rate_per_unit')) {
+        await runSqlite(`ALTER TABLE supply_entries ADD COLUMN rate_per_unit REAL DEFAULT 0;`);
+      }
+      if (seInfo.length > 0 && !seInfo.some(c => c.name === 'payment_mode')) {
+        await runSqlite(`ALTER TABLE supply_entries ADD COLUMN payment_mode TEXT DEFAULT 'Credit';`);
+      }
+    } catch (e) { console.error('SQLite alter check error:', e); }
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS supply_account_ledger (
+          id TEXT PRIMARY KEY,
+          account_id TEXT,
+          supplier_id TEXT,
+          entry_date TEXT NOT NULL,
+          entry_type TEXT NOT NULL,
+          amount REAL NOT NULL,
+          balance_after REAL NOT NULL,
+          reference_id TEXT,
           notes TEXT,
           created_at TEXT DEFAULT (datetime('now'))
       );

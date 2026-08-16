@@ -71,6 +71,7 @@ export default function SupplyEntries() {
 
   // Auto-resolve price when material + vehicle type selected
   useEffect(() => {
+    if (form.vehicle_type_id === 'CUSTOM') return;
     if (form.raw_material_id && form.vehicle_type_id && form.entry_date) {
       fetch(`${API}/pricing/resolve?raw_material_id=${form.raw_material_id}&vehicle_type_id=${form.vehicle_type_id}&date=${form.entry_date}`)
         .then(r => r.json())
@@ -90,15 +91,34 @@ export default function SupplyEntries() {
     setForm({
       supplier_id: '', raw_material_id: '', vehicle_type_id: '', vehicle_id: '',
       entry_date: new Date().toISOString().split('T')[0],
-      quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: ''
+      quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: '',
+      custom_vehicle_name: '', custom_vehicle_rate: ''
     });
     setResolvedRate(null);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.supplier_id || !form.raw_material_id || !form.vehicle_type_id || !form.entry_date) return;
-    if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) return;
+    if (!form.supplier_id || !form.raw_material_id || !form.vehicle_type_id || !form.entry_date) {
+      alert('Please fill all required fields (*).');
+      return;
+    }
+
+    if (form.vehicle_type_id === 'CUSTOM') {
+      if (!form.custom_vehicle_name || !form.custom_vehicle_name.trim()) {
+        alert('Please enter the custom vehicle name.');
+        return;
+      }
+      if (!form.custom_vehicle_rate || parseFloat(form.custom_vehicle_rate) <= 0) {
+        alert('Please enter a valid rate per 1 load for the custom vehicle.');
+        return;
+      }
+    }
+
+    if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) {
+      alert('Please enter a valid rate per unit.');
+      return;
+    }
 
     const res = await fetch(`${API}/entries`, {
       method: 'POST',
@@ -109,6 +129,7 @@ export default function SupplyEntries() {
     if (res.ok) {
       setShowModal(false);
       fetchData();
+      fetchMasters(); // Refresh vehicle types in case custom vehicle type was auto-registered
     } else {
       const err = await res.json();
       alert(err.error || 'Failed to create entry');
@@ -121,8 +142,12 @@ export default function SupplyEntries() {
     fetchData();
   };
 
-  const fmt = (v) => parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const calcTotal = parseFloat(form.rate_per_unit || 0) * parseFloat(form.quantity || 0);
+  const fmt = (v) => {
+    const num = parseFloat(v);
+    if (isNaN(num)) return '0.00';
+    return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const calcTotal = (parseFloat(form.rate_per_unit) || 0) * (parseFloat(form.quantity) || 0);
 
   return (
     <div className="space-y-4">
@@ -275,16 +300,53 @@ export default function SupplyEntries() {
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Vehicle Type *</label>
-                  <select value={form.vehicle_type_id} onChange={e => setForm({...form, vehicle_type_id: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
+                  <select value={form.vehicle_type_id} onChange={e => {
+                    const val = e.target.value;
+                    if (val === 'CUSTOM') {
+                      const initialCustomRate = form.custom_vehicle_rate ? parseFloat(form.custom_vehicle_rate) : null;
+                      setForm(prev => ({ ...prev, vehicle_type_id: val, rate_per_unit: prev.custom_vehicle_rate || '' }));
+                      setResolvedRate(initialCustomRate && !isNaN(initialCustomRate) ? initialCustomRate : null);
+                    } else {
+                      setForm(prev => ({ ...prev, vehicle_type_id: val }));
+                    }
+                  }}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
                     <option value="">Select Vehicle Type</option>
-                    {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
+                    {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}{vt.capacity ? ` (${vt.capacity})` : ''}</option>)}
+                    <option value="CUSTOM">+ Custom / Unregistered Vehicle</option>
                   </select>
                 </div>
               </div>
 
+              {/* Custom Vehicle Details Inline Box */}
+              {form.vehicle_type_id === 'CUSTOM' && (
+                <div className="bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#D6C4B0] space-y-3">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-[#965E36]">
+                    <FileText className="h-4 w-4" />
+                    <span>Custom / Unregistered Vehicle Details</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Name / Type *</label>
+                      <input value={form.custom_vehicle_name || ''} onChange={e => setForm({...form, custom_vehicle_name: e.target.value})} placeholder="e.g. Local Eicher 14-ft / Special Tipper"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Rate for 1 Load (₹) *</label>
+                      <input type="number" step="0.01" value={form.custom_vehicle_rate || ''} onChange={e => {
+                        const val = e.target.value;
+                        const num = parseFloat(val);
+                        setForm(prev => ({ ...prev, custom_vehicle_rate: val, rate_per_unit: val }));
+                        setResolvedRate(!isNaN(num) && num > 0 ? num : null);
+                      }} placeholder="e.g. 3500.00"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-bold text-[#965E36]" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Vehicle (optional) */}
-              {vehicles.length > 0 && (
+              {vehicles.length > 0 && form.vehicle_type_id !== 'CUSTOM' && (
                 <div>
                   <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Specific Vehicle (Optional)</label>
                   <select value={form.vehicle_id} onChange={e => setForm({...form, vehicle_id: e.target.value})}
@@ -297,8 +359,9 @@ export default function SupplyEntries() {
 
               {/* Price Resolution Indicator */}
               {resolvedRate !== null && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700">
-                  <span className="font-bold">✓ Auto-resolved rate:</span> ₹ {fmt(resolvedRate)} per unit from pricing table. You can override below.
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 font-semibold flex items-center justify-between">
+                  <span>✓ {form.vehicle_type_id === 'CUSTOM' ? 'Custom vehicle rate applied:' : 'Auto-fetched rate for 1 load:'}</span>
+                  <span className="font-extrabold text-emerald-800 text-sm">₹ {fmt(resolvedRate)} / load</span>
                 </div>
               )}
 
@@ -331,10 +394,17 @@ export default function SupplyEntries() {
                 <span className="text-xl font-extrabold text-[#2E1A0C]">₹ {fmt(calcTotal)}</span>
               </div>
 
+              {/* Custom Vehicle Reg No / Driver Override */}
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Reg No / Scale Note (Optional)</label>
+                <input value={form.custom_vehicle_number || ''} onChange={e => setForm({...form, custom_vehicle_number: e.target.value})} placeholder="e.g. TN 38 B 9912 / Weighbridge Slip #4410"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+              </div>
+
               {/* Notes */}
               <div>
-                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} placeholder="Optional remarks..."
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Notes & Remarks</label>
+                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} placeholder="e.g. Quality inspection passed / Wet husk deduction 50kg"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none resize-none" />
               </div>
             </div>

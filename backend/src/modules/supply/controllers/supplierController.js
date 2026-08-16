@@ -44,7 +44,7 @@ export async function getSupplierById(req, res) {
 // POST /api/supply/suppliers
 export async function createSupplier(req, res) {
   try {
-    const { name, contact_person, phone, address } = req.body;
+    const { name, contact_person, phone, address, custom_notes } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Supplier name is required.' });
     }
@@ -60,8 +60,8 @@ export async function createSupplier(req, res) {
 
     const id = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_suppliers (id, supplier_code, name, contact_person, phone, address, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, supplier_code, name.trim(), contact_person || '', phone || '', address || '', 'Active']
+      `INSERT INTO supply_suppliers (id, supplier_code, name, contact_person, phone, address, custom_notes, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, supplier_code, name.trim(), contact_person || '', phone || '', address || '', custom_notes || '', 'Active']
     );
 
     const created = await dbQuery(`SELECT * FROM supply_suppliers WHERE id = $1`, [id]);
@@ -76,11 +76,11 @@ export async function createSupplier(req, res) {
 export async function updateSupplier(req, res) {
   try {
     const { id } = req.params;
-    const { name, contact_person, phone, address, status } = req.body;
+    const { name, contact_person, phone, address, custom_notes, status } = req.body;
 
     await dbQuery(
-      `UPDATE supply_suppliers SET name = $1, contact_person = $2, phone = $3, address = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
-      [name?.trim(), contact_person || '', phone || '', address || '', status || 'Active', id]
+      `UPDATE supply_suppliers SET name = $1, contact_person = $2, phone = $3, address = $4, custom_notes = $5, status = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
+      [name?.trim(), contact_person || '', phone || '', address || '', custom_notes || '', status || 'Active', id]
     );
 
     const updated = await dbQuery(`SELECT * FROM supply_suppliers WHERE id = $1`, [id]);

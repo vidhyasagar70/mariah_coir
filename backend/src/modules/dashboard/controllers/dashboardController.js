@@ -6,7 +6,29 @@ const VALID_PAYMENT_MODES = ['Cash', 'Bank Transfer', 'UPI', 'Cheque'];
 // GET /api/dashboard/analytics
 export async function getDashboardAnalytics(req, res) {
   try {
-    const { date_from, date_to } = req.query;
+    let { date_from, date_to, year, month } = req.query;
+
+    // Convert year & month to date range if provided
+    if (year && year !== 'ALL' && year !== 'All') {
+      const y = parseInt(year, 10);
+      if (!isNaN(y)) {
+        if (month && month !== 'ALL' && month !== 'All') {
+          const m = parseInt(month, 10);
+          if (!isNaN(m) && m >= 1 && m <= 12) {
+            const mStr = String(m).padStart(2, '0');
+            date_from = `${y}-${mStr}-01`;
+            const lastDay = new Date(y, m, 0).getDate();
+            date_to = `${y}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+          } else {
+            date_from = `${y}-01-01`;
+            date_to = `${y}-12-31`;
+          }
+        } else {
+          date_from = `${y}-01-01`;
+          date_to = `${y}-12-31`;
+        }
+      }
+    }
 
     // Build date clauses
     let salesDateClause = '';
@@ -133,7 +155,28 @@ export async function getDashboardAnalytics(req, res) {
 // GET /api/dashboard/expenses
 export async function getExpenses(req, res) {
   try {
-    const { search, category } = req.query;
+    let { search, category, date_from, date_to, year, month } = req.query;
+
+    if (year && year !== 'ALL' && year !== 'All') {
+      const y = parseInt(year, 10);
+      if (!isNaN(y)) {
+        if (month && month !== 'ALL' && month !== 'All') {
+          const m = parseInt(month, 10);
+          if (!isNaN(m) && m >= 1 && m <= 12) {
+            const mStr = String(m).padStart(2, '0');
+            date_from = `${y}-${mStr}-01`;
+            const lastDay = new Date(y, m, 0).getDate();
+            date_to = `${y}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+          } else {
+            date_from = `${y}-01-01`;
+            date_to = `${y}-12-31`;
+          }
+        } else {
+          date_from = `${y}-01-01`;
+          date_to = `${y}-12-31`;
+        }
+      }
+    }
 
     let query = `SELECT * FROM expenses WHERE 1=1`;
     const params = [];
@@ -147,6 +190,16 @@ export async function getExpenses(req, res) {
     if (category && category !== 'ALL' && category !== 'All') {
       params.push(category);
       query += ` AND category = $${params.length}`;
+    }
+
+    if (date_from) {
+      params.push(date_from);
+      query += ` AND expense_date >= $${params.length}`;
+    }
+
+    if (date_to) {
+      params.push(date_to);
+      query += ` AND expense_date <= $${params.length}`;
     }
 
     query += ` ORDER BY expense_date DESC, created_at DESC, id DESC`;

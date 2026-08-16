@@ -3,7 +3,6 @@ import {
   TrendingUp,
   TrendingDown,
   IndianRupee,
-  DollarSign,
   Plus,
   Search,
   Filter,
@@ -19,13 +18,42 @@ import {
   AlertTriangle,
   FileText,
   Trash2,
-  Scale
+  Scale,
+  Sparkles,
+  BarChart3,
+  PieChart,
+  ArrowUpRight,
+  Factory
 } from 'lucide-react';
 import { getDashboardAnalytics, getExpenses, createExpense, deleteExpense } from '../../../shared/services/dashboardApi';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 
 const EXPENSE_CATEGORIES = ['Driver Salary', 'Employee Salary', 'Diesel Expense', 'Miscellaneous', 'Utility & Maintenance'];
 const PAYMENT_MODES = ['Cash', 'Bank Transfer', 'UPI', 'Cheque'];
+
+// Generate dynamic year list around current year (e.g. 2015 to 2035)
+const CURRENT_YEAR = new Date().getFullYear();
+const DYNAMIC_YEARS_LIST = ['ALL'];
+for (let y = CURRENT_YEAR + 5; y >= CURRENT_YEAR - 10; y--) {
+  DYNAMIC_YEARS_LIST.push(String(y));
+}
+DYNAMIC_YEARS_LIST.push('CUSTOM');
+
+const MONTHS_LIST = [
+  { value: 'ALL', label: 'All Months' },
+  { value: '1', label: '01 - January' },
+  { value: '2', label: '02 - February' },
+  { value: '3', label: '03 - March' },
+  { value: '4', label: '04 - April' },
+  { value: '5', label: '05 - May' },
+  { value: '6', label: '06 - June' },
+  { value: '7', label: '07 - July' },
+  { value: '8', label: '08 - August' },
+  { value: '9', label: '09 - September' },
+  { value: '10', label: '10 - October' },
+  { value: '11', label: '11 - November' },
+  { value: '12', label: '12 - December' }
+];
 
 export default function DashboardLanding({ search: globalSearch }) {
   const [analytics, setAnalytics] = useState({
@@ -50,13 +78,15 @@ export default function DashboardLanding({ search: globalSearch }) {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Time & Category Filters
+  const [selectedYear, setSelectedYear] = useState(String(CURRENT_YEAR));
+  const [isCustomYearMode, setIsCustomYearMode] = useState(false);
+  const [customYearInput, setCustomYearInput] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [localSearch, setLocalSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
 
-  // Modal State
+  // Modal Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     category: 'Diesel Expense',
@@ -74,13 +104,15 @@ export default function DashboardLanding({ search: globalSearch }) {
     try {
       setLoading(true);
       const params = {};
-      if (dateFrom) params.date_from = dateFrom;
-      if (dateTo) params.date_to = dateTo;
+      if (selectedYear !== 'ALL') params.year = selectedYear;
+      if (selectedMonth !== 'ALL') params.month = selectedMonth;
 
       const expParams = {};
       const querySearch = localSearch || globalSearch;
       if (querySearch) expParams.search = querySearch;
       if (categoryFilter !== 'ALL') expParams.category = categoryFilter;
+      if (selectedYear !== 'ALL') expParams.year = selectedYear;
+      if (selectedMonth !== 'ALL') expParams.month = selectedMonth;
 
       const [dataRes, expRes] = await Promise.all([
         getDashboardAnalytics(params),
@@ -98,7 +130,7 @@ export default function DashboardLanding({ search: globalSearch }) {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [globalSearch, localSearch, categoryFilter, dateFrom, dateTo]);
+  }, [globalSearch, selectedYear, selectedMonth, localSearch, categoryFilter]);
 
   const handleOpenModal = () => {
     setFormData({
@@ -161,137 +193,258 @@ export default function DashboardLanding({ search: globalSearch }) {
 
   const { financials, expenseBreakdown, revenueBreakdown } = analytics;
   const isProfit = financials.netProfit >= 0;
-  const hasActiveFilters = localSearch !== '' || categoryFilter !== 'ALL' || dateFrom !== '' || dateTo !== '';
+  const hasTimeFilter = selectedYear !== 'ALL' || selectedMonth !== 'ALL';
+  const hasTableFilter = localSearch !== '' || categoryFilter !== 'ALL';
 
   return (
     <div className="space-y-4 flex flex-col h-[calc(100vh-130px)] overflow-y-auto pr-1">
-      {/* Top Financial Verdict Banner */}
-      <div className="card-panel p-4 sm:p-5 rounded-2xl bg-white border border-[#D6C4B0] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#965E36]">EXECUTIVE FINANCIAL VERDICT</span>
-          <h2 className="text-xl sm:text-2xl font-black text-[#2E1C11] tracking-tight">
-            Coir Factory Net Profitability Engine
-          </h2>
-          <p className="text-xs text-[#7A6759]">
-            Real-time reconciliation of Finished Products & Dust Pith Revenue vs Raw Husks & Operating Costs.
-          </p>
+      {/* Coir Manufacturing Header & Time Filter Bar */}
+      <div className="card-panel p-4 rounded-2xl bg-white border border-[#D6C4B0] shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 rounded-xl bg-[#965E36] text-white shadow-xs shrink-0">
+            <Factory className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#965E36] bg-[#FAF0E6] px-2 py-0.5 rounded-md border border-[#E8D6C5]">
+                COIR & PEAT MANUFACTURING
+              </span>
+              {hasTimeFilter && (
+                <span className="text-[10px] font-mono font-bold text-[#6E594A]">
+                  ({selectedYear !== 'ALL' ? selectedYear : ''} {selectedMonth !== 'ALL' ? MONTHS_LIST.find(m => m.value === selectedMonth)?.label.split('-')[1] : ''})
+                </span>
+              )}
+            </div>
+            <h2 className="text-lg font-black text-[#2E1C11] tracking-tight">
+              Executive Profitability & Operational Analytics
+            </h2>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* NET PROFIT VERDICT BADGE */}
-          <div className={`p-3 sm:p-4 rounded-xl border flex items-center space-x-3 w-full md:w-auto min-w-[240px] ${
-            isProfit ? 'bg-emerald-50 text-emerald-950 border-emerald-300' : 'bg-rose-50 text-rose-950 border-rose-300'
-          }`}>
-            <div className={`p-2.5 rounded-lg ${isProfit ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
-              {isProfit ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-            </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">NET PROFIT / MARGIN</span>
-              <div className={`text-base sm:text-lg font-black font-mono ${isProfit ? 'text-emerald-900' : 'text-rose-900'}`}>
-                {isProfit ? `+${formatCurrency(financials.netProfit)}` : formatCurrency(financials.netProfit)}
+        {/* TIME FILTERS & EXPENSE ACTION */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Year Selector */}
+          <div className="flex items-center space-x-1 bg-white px-2.5 py-1.5 rounded-xl border border-[#D6C4B0] text-xs text-[#2E1C11]">
+            <Calendar className="h-3.5 w-3.5 text-[#A8988B] shrink-0" />
+            <span className="text-[11px] font-bold text-[#6E594A]">Year:</span>
+            {isCustomYearMode ? (
+              <div className="flex items-center space-x-1">
+                <input
+                  type="number"
+                  min="2000"
+                  max="2099"
+                  placeholder="YYYY"
+                  value={customYearInput}
+                  onChange={(e) => {
+                    setCustomYearInput(e.target.value);
+                    if (e.target.value.length === 4) {
+                      setSelectedYear(e.target.value);
+                    }
+                  }}
+                  className="w-14 px-1 py-0.5 rounded bg-[#FAF0E6] border border-[#965E36] font-extrabold text-xs text-[#2E1C11] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setIsCustomYearMode(false); setSelectedYear(String(CURRENT_YEAR)); }}
+                  className="text-[10px] text-[#965E36] font-bold hover:underline cursor-pointer"
+                  title="Switch to Dropdown List"
+                >
+                  List
+                </button>
               </div>
-              <div className={`text-xs font-extrabold ${isProfit ? 'text-emerald-800' : 'text-rose-800'}`}>
-                {isProfit ? `+${financials.profitMargin}% Margin` : `${financials.profitMargin}% Margin Deficit`}
-              </div>
-            </div>
+            ) : (
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  if (e.target.value === 'CUSTOM') {
+                    setIsCustomYearMode(true);
+                    setCustomYearInput(selectedYear !== 'ALL' ? selectedYear : String(CURRENT_YEAR));
+                  } else {
+                    setSelectedYear(e.target.value);
+                  }
+                }}
+                className="bg-transparent focus:outline-none font-extrabold cursor-pointer text-xs"
+              >
+                {DYNAMIC_YEARS_LIST.map(y => (
+                  <option key={y} value={y}>{y === 'ALL' ? 'All Years' : y === 'CUSTOM' ? '✏️ Enter Custom Year...' : y}</option>
+                ))}
+              </select>
+            )}
           </div>
+
+          {/* Month Selector */}
+          <div className="flex items-center space-x-1 bg-white px-2.5 py-1.5 rounded-xl border border-[#D6C4B0] text-xs text-[#2E1C11]">
+            <Filter className="h-3.5 w-3.5 text-[#A8988B] shrink-0" />
+            <span className="text-[11px] font-bold text-[#6E594A]">Month:</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent focus:outline-none font-bold cursor-pointer text-xs"
+            >
+              {MONTHS_LIST.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {hasTimeFilter && (
+            <button
+              onClick={() => { setSelectedYear('ALL'); setSelectedMonth('ALL'); setIsCustomYearMode(false); }}
+              className="p-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
+              title="Reset Time Filters"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
 
           <button
             onClick={handleOpenModal}
-            className="flex items-center justify-center space-x-1.5 px-4 py-3 rounded-xl bg-[#965E36] hover:bg-[#7A4A28] text-white text-xs font-extrabold shadow-sm transition-all duration-150 cursor-pointer w-full md:w-auto"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-[#965E36] hover:bg-[#7A4A28] text-white text-xs font-extrabold shadow-sm transition-all duration-150 cursor-pointer ml-1"
           >
             <Plus className="h-4 w-4" />
-            <span>+ Record Operational Expense</span>
+            <span>+ Record Expense</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0]">
+      {/* Financial Verdict Banner */}
+      <div className={`card-panel p-4 rounded-2xl border transition-all duration-200 ${
+        isProfit ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-300'
+      }`}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
+                isProfit ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+              }`}>
+                {financials.verdictStatus === 'PROFIT' ? 'NET FINANCIAL SURPLUS' : 'NET OPERATIONAL DEFICIT'}
+              </span>
+              <span className="text-xs text-[#7A6759] font-medium">Reconciled Net Profit Engine</span>
+            </div>
+            <div className="flex items-baseline space-x-3">
+              <span className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
+                isProfit ? 'text-emerald-950' : 'text-rose-950'
+              }`}>
+                {isProfit ? `+${formatCurrency(financials.netProfit)}` : formatCurrency(financials.netProfit)}
+              </span>
+              <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md border ${
+                isProfit ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-rose-100 text-rose-900 border-rose-300'
+              }`}>
+                {isProfit ? `+${financials.profitMargin}% Profit Margin` : `${financials.profitMargin}% Margin Deficit`}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4 text-xs font-mono bg-white/80 p-2.5 rounded-xl border border-[#D6C4B0] w-full sm:w-auto justify-between sm:justify-start">
+            <div>
+              <span className="text-[10px] text-[#7A6759] block uppercase font-sans font-bold">Gross Income</span>
+              <span className="font-extrabold text-emerald-800">{formatCurrency(financials.totalGrossRevenue)}</span>
+            </div>
+            <div className="h-6 w-px bg-[#E8DCD0]"></div>
+            <div>
+              <span className="text-[10px] text-[#7A6759] block uppercase font-sans font-bold">Cost Outflows</span>
+              <span className="font-extrabold text-rose-800">{formatCurrency(financials.totalExpenses)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Metrics Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+        {/* Card 1: Gross Revenue */}
+        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0] hover:border-[#965E36] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">TOTAL GROSS REVENUE</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">GROSS REVENUE</span>
             <div className="p-1 rounded-md bg-emerald-50 text-emerald-700">
               <IndianRupee className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="text-lg font-black font-mono text-emerald-800">
+          <div className="text-base font-black font-mono text-emerald-800">
             {formatCurrency(financials.totalGrossRevenue)}
           </div>
-          <div className="text-[11px] text-[#7A6759] pt-0.5">
-            Products: {formatCurrency(financials.productSalesRevenue)} • Dust: {formatCurrency(financials.dustSalesRevenue)}
-          </div>
+          <div className="text-[10px] text-[#7A6759]">Total sales revenue</div>
         </div>
 
-        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0]">
+        {/* Card 2: Coir Products Sales */}
+        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0] hover:border-[#965E36] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">TOTAL OPERATIONAL EXPENSES</span>
-            <div className="p-1 rounded-md bg-rose-50 text-rose-700">
-              <IndianRupee className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="text-lg font-black font-mono text-rose-800">
-            {formatCurrency(financials.totalExpenses)}
-          </div>
-          <div className="text-[11px] text-[#7A6759] pt-0.5">
-            Husks + Diesel + Payroll + Wages + Utilities
-          </div>
-        </div>
-
-        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0]">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">RAW MATERIAL HUSKS COST</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">COIR FIBRE & YARN</span>
             <div className="p-1 rounded-md bg-[#FAF0E6] text-[#965E36]">
               <Package className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="text-lg font-black font-mono text-[#2E1C11]">
-            {formatCurrency(financials.rawMaterialCost)}
+          <div className="text-base font-black font-mono text-[#2E1C11]">
+            {formatCurrency(financials.productSalesRevenue)}
           </div>
-          <div className="text-[11px] text-[#7A6759] pt-0.5">
-            Green & Brown husk procurement
-          </div>
+          <div className="text-[10px] text-[#7A6759]">Bundles & Bales revenue</div>
         </div>
 
-        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0]">
+        {/* Card 3: Coir Dust Sales */}
+        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0] hover:border-[#965E36] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">DIESEL & LABOR PAYROLL</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">COIR PEAT (DUST)</span>
+            <div className="p-1 rounded-md bg-amber-50 text-amber-800">
+              <Layers className="h-3.5 w-3.5" />
+            </div>
+          </div>
+          <div className="text-base font-black font-mono text-amber-900">
+            {formatCurrency(financials.dustSalesRevenue)}
+          </div>
+          <div className="text-[10px] text-[#7A6759]">Truck load dispatches</div>
+        </div>
+
+        {/* Card 4: Raw Material Husks */}
+        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0] hover:border-[#965E36] transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">RAW HUSK PROCUREMENT</span>
             <div className="p-1 rounded-md bg-blue-50 text-blue-700">
+              <Truck className="h-3.5 w-3.5" />
+            </div>
+          </div>
+          <div className="text-base font-black font-mono text-blue-900">
+            {formatCurrency(financials.rawMaterialCost)}
+          </div>
+          <div className="text-[10px] text-[#7A6759]">Green/Brown husk cost</div>
+        </div>
+
+        {/* Card 5: Operational Costs */}
+        <div className="card-panel px-3.5 py-3 rounded-xl space-y-1 bg-white border border-[#E8DCD0] hover:border-[#965E36] transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E594A]">DIESEL & PAYROLL</span>
+            <div className="p-1 rounded-md bg-rose-50 text-rose-700">
               <Fuel className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="text-lg font-black font-mono text-blue-900">
-            {formatCurrency(financials.dieselExpense + financials.employeeSalary + financials.driverSalary)}
+          <div className="text-base font-black font-mono text-rose-800">
+            {formatCurrency(financials.dieselExpense + financials.employeeSalary + financials.driverSalary + financials.miscExpense)}
           </div>
-          <div className="text-[11px] text-[#7A6759] pt-0.5">
-            Fuel: {formatCurrency(financials.dieselExpense)} • Payroll: {formatCurrency(financials.employeeSalary)}
-          </div>
+          <div className="text-[10px] text-[#7A6759]">Fuel + Wages + Misc</div>
         </div>
       </div>
 
       {/* Visual Analytics Breakdowns Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Cost Outflows Distribution */}
-        <div className="card-panel p-4 rounded-2xl bg-white border border-[#E8DCD0] space-y-3">
+        {/* Cost Outflows & Expense Category Distribution */}
+        <div className="card-panel p-4 rounded-2xl bg-white border border-[#E8DCD0] space-y-3 shadow-2xs">
           <div className="flex items-center justify-between pb-2 border-b border-[#F4EDE4]">
             <h3 className="text-xs font-extrabold text-[#2E1C11] flex items-center space-x-2">
               <Fuel className="h-4 w-4 text-[#965E36]" />
-              <span>Operational Expense Distribution</span>
+              <span>Cost Outflows & Expense Distribution</span>
             </h3>
             <span className="text-xs font-mono font-bold text-rose-800">{formatCurrency(financials.totalExpenses)}</span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {expenseBreakdown.map((item) => (
               <div key={item.category} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#2E1C11]">{item.category}</span>
+                  <span className="font-bold text-[#2E1C11]">{item.category}</span>
                   <div className="font-mono space-x-2">
-                    <span className="text-[#7A6759] text-[11px]">{item.percentage.toFixed(1)}%</span>
-                    <span className="font-bold text-[#2E1C11]">{formatCurrency(item.amount)}</span>
+                    <span className="text-[#7A6759] text-[11px] font-medium">{item.percentage.toFixed(1)}%</span>
+                    <span className="font-extrabold text-[#2E1C11]">{formatCurrency(item.amount)}</span>
                   </div>
                 </div>
-                <div className="w-full h-2 bg-[#F5ECE3] rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-[#F5ECE3] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#965E36] rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
@@ -302,27 +455,27 @@ export default function DashboardLanding({ search: globalSearch }) {
           </div>
         </div>
 
-        {/* Revenue Streams Distribution */}
-        <div className="card-panel p-4 rounded-2xl bg-white border border-[#E8DCD0] space-y-3">
+        {/* Revenue Streams Breakdown */}
+        <div className="card-panel p-4 rounded-2xl bg-white border border-[#E8DCD0] space-y-3 shadow-2xs">
           <div className="flex items-center justify-between pb-2 border-b border-[#F4EDE4]">
             <h3 className="text-xs font-extrabold text-[#2E1C11] flex items-center space-x-2">
               <IndianRupee className="h-4 w-4 text-emerald-700" />
-              <span>Revenue Streams Breakdown</span>
+              <span>Manufacturing Revenue Stream Distribution</span>
             </h3>
             <span className="text-xs font-mono font-bold text-emerald-800">{formatCurrency(financials.totalGrossRevenue)}</span>
           </div>
 
-          <div className="space-y-3.5 pt-1">
+          <div className="space-y-4 pt-1">
             {revenueBreakdown.map((item) => (
               <div key={item.stream} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#2E1C11]">{item.stream}</span>
+                  <span className="font-bold text-[#2E1C11]">{item.stream}</span>
                   <div className="font-mono space-x-2">
-                    <span className="text-[#7A6759] text-[11px]">{item.percentage.toFixed(1)}%</span>
+                    <span className="text-[#7A6759] text-[11px] font-medium">{item.percentage.toFixed(1)}%</span>
                     <span className="font-extrabold text-emerald-800">{formatCurrency(item.amount)}</span>
                   </div>
                 </div>
-                <div className="w-full h-2.5 bg-[#F5ECE3] rounded-full overflow-hidden">
+                <div className="w-full h-3 bg-[#F5ECE3] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-600 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
@@ -331,13 +484,13 @@ export default function DashboardLanding({ search: globalSearch }) {
               </div>
             ))}
 
-            <div className="p-3 rounded-xl bg-[#FAF0E6] border border-[#E8D6C5] space-y-1 text-xs">
+            <div className="p-3 rounded-xl bg-[#FAF0E6] border border-[#E8D6C5] space-y-1.5 text-xs">
               <div className="flex items-center justify-between text-[#7A6759]">
-                <span>Total Finished Products Sold:</span>
+                <span className="font-medium">Coir Yarn & Fibre Products Revenue:</span>
                 <span className="font-mono font-bold text-[#2E1C11]">{formatCurrency(financials.productSalesRevenue)}</span>
               </div>
               <div className="flex items-center justify-between text-[#7A6759]">
-                <span>Total Coir Pith Dust Dispatched:</span>
+                <span className="font-medium">Coir Pith / Dust Dispatches Revenue:</span>
                 <span className="font-mono font-bold text-[#2E1C11]">{formatCurrency(financials.dustSalesRevenue)}</span>
               </div>
             </div>
@@ -346,13 +499,13 @@ export default function DashboardLanding({ search: globalSearch }) {
       </div>
 
       {/* Operational Expenses Directory Table */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 pt-1">
         <div className="card-panel p-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-2 flex-1 min-w-[200px] max-w-xs">
             <Search className="h-3.5 w-3.5 text-[#A8988B] shrink-0" />
             <input
               type="text"
-              placeholder="Search expenses by beneficiary, notes..."
+              placeholder="Search expenses by vendor, remarks..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               className="w-full px-2.5 py-1 rounded-xl bg-white border border-[#D6C4B0] text-xs text-[#2E1C11] focus:outline-none focus:border-[#965E36]"
@@ -365,7 +518,7 @@ export default function DashboardLanding({ search: globalSearch }) {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="text-xs text-[#2E1C11] bg-transparent focus:outline-none cursor-pointer"
+                className="text-xs text-[#2E1C11] bg-transparent focus:outline-none cursor-pointer font-medium"
               >
                 <option value="ALL">All Categories</option>
                 {EXPENSE_CATEGORIES.map(c => (
@@ -374,9 +527,9 @@ export default function DashboardLanding({ search: globalSearch }) {
               </select>
             </div>
 
-            {hasActiveFilters && (
+            {hasTableFilter && (
               <button
-                onClick={() => { setLocalSearch(''); setCategoryFilter('ALL'); setDateFrom(''); setDateTo(''); }}
+                onClick={() => { setLocalSearch(''); setCategoryFilter('ALL'); }}
                 className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -390,7 +543,7 @@ export default function DashboardLanding({ search: globalSearch }) {
           {expenses.length === 0 ? (
             <div className="p-8 text-center text-xs text-[#7A6759] space-y-2">
               <FileText className="h-8 w-8 text-[#D4C3B3] mx-auto" />
-              <p>No operational expense records logged yet. Click "+ Record Operational Expense" to add diesel, wages, or labor payments.</p>
+              <p>No expense records logged for the selected time filter. Click "+ Record Expense" to log fuel, wages, or factory costs.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -411,14 +564,14 @@ export default function DashboardLanding({ search: globalSearch }) {
                   {expenses.map((exp) => (
                     <tr key={exp.id} className="hover:bg-[#FAF7F2]/80 transition-colors">
                       <td className="p-3 font-mono font-bold text-[#2E1C11]">{exp.id}</td>
-                      <td className="p-3 text-[#6E594A]">{formatDate(exp.expense_date)}</td>
+                      <td className="p-3 text-[#6E594A] font-medium">{formatDate(exp.expense_date)}</td>
                       <td className="p-3">
                         <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF0E6] text-[#8C532E] border border-[#E8D6C5]">
                           {exp.category}
                         </span>
                       </td>
-                      <td className="p-3 font-medium text-[#2E1C11]">{exp.beneficiary_name || '-'}</td>
-                      <td className="p-3 font-semibold text-[#6E594A]">{exp.payment_mode}</td>
+                      <td className="p-3 font-semibold text-[#2E1C11]">{exp.beneficiary_name || '-'}</td>
+                      <td className="p-3 font-medium text-[#6E594A]">{exp.payment_mode}</td>
                       <td className="p-3 font-mono font-extrabold text-rose-800 text-sm">
                         {formatCurrency(exp.amount)}
                       </td>
@@ -542,7 +695,7 @@ export default function DashboardLanding({ search: globalSearch }) {
                   type="text"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="e.g. Fuel refill for 10-Wheeler truck"
+                  placeholder="e.g. Bulk diesel refill for 10-wheeler fleet"
                   className="w-full px-3 py-2 rounded-xl bg-white border border-[#D6C4B0] text-xs text-[#2E1C11] font-medium focus:outline-none focus:border-[#965E36]"
                 />
               </div>

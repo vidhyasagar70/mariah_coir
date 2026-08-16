@@ -70,15 +70,34 @@ export async function createEntry(req, res) {
   try {
     const {
       supplier_id, raw_material_id, vehicle_type_id, vehicle_id,
-      entry_date, quantity, rate_per_unit, payment_mode, notes
+      entry_date, quantity, rate_per_unit, payment_mode, notes,
+      custom_vehicle_name, custom_vehicle_rate
     } = req.body;
 
     if (!supplier_id || !raw_material_id || !vehicle_type_id || !entry_date) {
       return res.status(400).json({ error: 'Supplier, raw material, vehicle type, and entry date are required.' });
     }
 
-    // Resolve rate: use provided rate or auto-resolve from pricing table
-    let resolvedRate = rate_per_unit ? parseFloat(rate_per_unit) : null;
+    let finalVehicleTypeId = vehicle_type_id;
+    if (vehicle_type_id === 'CUSTOM' || custom_vehicle_name) {
+      const customName = (custom_vehicle_name || 'Custom Vehicle').trim();
+      const existing = await dbQuery(
+        `SELECT id FROM supply_vehicle_types WHERE LOWER(name) = LOWER($1) AND deleted_at IS NULL`,
+        [customName]
+      );
+      if (existing.length > 0) {
+        finalVehicleTypeId = existing[0].id;
+      } else {
+        finalVehicleTypeId = generateUuid();
+        await dbQuery(
+          `INSERT INTO supply_vehicle_types (id, name, capacity, description, custom_alias, status) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [finalVehicleTypeId, customName, 'Custom Capacity', 'Auto-registered via Supply Entry', customName, 1]
+        );
+      }
+    }
+
+    // Resolve rate: use provided rate, custom rate, or auto-resolve from pricing table
+    let resolvedRate = rate_per_unit || custom_vehicle_rate ? parseFloat(rate_per_unit || custom_vehicle_rate) : null;
 
     if (!resolvedRate) {
       const priceRows = await dbQuery(`
@@ -91,7 +110,7 @@ export async function createEntry(req, res) {
           AND (effective_to IS NULL OR effective_to >= $3)
         ORDER BY effective_from DESC
         LIMIT 1
-      `, [raw_material_id, vehicle_type_id, entry_date]);
+      `, [raw_material_id, finalVehicleTypeId, entry_date]);
 
       if (priceRows.length > 0) {
         resolvedRate = parseFloat(priceRows[0].rate_per_unit);
@@ -107,9 +126,9 @@ export async function createEntry(req, res) {
 
     const id = generateUuid();
     await dbQuery(
-      `INSERT INTO supply_entries (id, entry_code, supplier_id, raw_material_id, vehicle_type_id, vehicle_id, entry_date, quantity, rate_per_unit, total_amount, payment_mode, notes, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-      [id, entryCode, supplier_id, raw_material_id, vehicle_type_id, vehicle_id || null, entry_date, qty, resolvedRate, totalAmount, mode, notes || '', 'Confirmed']
+      `INSERT INTO supply_entries (id, entry_code, supply_number, supplier_id, raw_material_id, unit_id, vehicle_type_id, vehicle_id, entry_date, date, quantity, rate_per_unit, price, total_amount, payment_mode, notes, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+      [id, entryCode, entryCode, supplier_id, raw_material_id, '00000000-0000-0000-0000-000000000001', finalVehicleTypeId, vehicle_id || '00000000-0000-0000-0000-000000000001', entry_date, entry_date, qty, resolvedRate, resolvedRate, totalAmount, mode, notes || '', 'Confirmed']
     );
 
     // If payment mode is Credit, update supplier account
@@ -127,24 +146,25 @@ export async function createEntry(req, res) {
         );
       } else {
         accountId = accountRows[0].id;
-        const newBalance = parseFloat(accountRows[0].current_balance) + totalAmount;
+        const newBalance = parseFloat(accountRows[0].current_balance || 0) + totalAmount;
         await dbQuery(`UPDATE supply_accounts SET current_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [newBalance, accountId]);
       }
 
       // Create ledger entry
       const updatedAccount = await dbQuery(`SELECT current_balance FROM supply_accounts WHERE id = $1`, [accountId]);
       const ledgerId = generateUuid();
+      const currentBal = parseFloat(updatedAccount[0]?.current_balance || totalAmount);
       await dbQuery(
-        `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, transaction_type, description, debit, credit, running_balance, reference_id, reference_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `INSERT INTO supply_account_ledger (id, account_id, supplier_id, transaction_date, entry_date, transaction_type, entry_type, description, debit, credit, running_balance, amount, balance_after, reference_id, reference_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         [
           ledgerId, accountId, supplier_id,
-          entry_date,
-          'Supply Receipt',
+          entry_date, entry_date,
+          'Supply Receipt', 'Supply Receipt',
           `Supply Entry ${entryCode} - ${qty} unit(s)`,
           totalAmount, 0,
-          parseFloat(updatedAccount[0].current_balance),
-          id, 'supply_entry'
+          currentBal, totalAmount, currentBal,
+          id, 'SUPPLY_ENTRY'
         ]
       );
     }

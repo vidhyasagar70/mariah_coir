@@ -9,7 +9,7 @@ export default function VehicleTypeMaster() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', capacity: '', description: '' });
+  const [form, setForm] = useState({ name: '', capacity: '', description: '', custom_alias: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -23,16 +23,26 @@ export default function VehicleTypeMaster() {
 
   useEffect(() => { fetchData(); }, [search]);
 
-  const openCreate = () => { setEditItem(null); setForm({ name: '', capacity: '', description: '' }); setShowModal(true); };
-  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, capacity: item.capacity || '', description: item.description || '' }); setShowModal(true); };
+  const openCreate = () => { setEditItem(null); setForm({ name: '', capacity: '', description: '', custom_alias: '' }); setShowModal(true); };
+  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, capacity: item.capacity || '', description: item.description || '', custom_alias: item.custom_alias || '' }); setShowModal(true); };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
-    const method = editItem ? 'PUT' : 'POST';
-    const url = editItem ? `${API}/${editItem.id}` : API;
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, status: true }) });
-    setShowModal(false);
-    fetchData();
+    try {
+      const method = editItem ? 'PUT' : 'POST';
+      const url = editItem ? `${API}/${editItem.id}` : API;
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, status: true }) });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || 'Error saving vehicle type');
+        return;
+      }
+      setShowModal(false);
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      alert('Error saving vehicle type: ' + e.message);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -121,6 +131,11 @@ export default function VehicleTypeMaster() {
               <div>
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Capacity</label>
                 <input value={form.capacity} onChange={e => setForm({...form, capacity: e.target.value})} placeholder="e.g. 6 Ton"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Alias / Local Vehicle Name</label>
+                <input value={form.custom_alias} onChange={e => setForm({...form, custom_alias: e.target.value})} placeholder="e.g. Rajan Heavy Tipper / 2-Axle Local"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
               </div>
               <div>

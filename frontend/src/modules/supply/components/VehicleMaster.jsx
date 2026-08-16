@@ -45,7 +45,7 @@ export default function VehicleMaster() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ supplier_id: '', vehicle_type_id: '', vehicle_number: '', notes: '' });
+    setForm({ supplier_id: '', vehicle_type_id: '', vehicle_number: '', notes: '', custom_driver_info: '' });
     setShowModal(true);
   };
 
@@ -55,7 +55,8 @@ export default function VehicleMaster() {
       supplier_id: item.supplier_id,
       vehicle_type_id: item.vehicle_type_id,
       vehicle_number: item.vehicle_number || '',
-      notes: item.notes || ''
+      notes: item.notes || '',
+      custom_driver_info: item.custom_driver_info || ''
     });
     setShowModal(true);
   };
@@ -178,6 +179,11 @@ export default function VehicleMaster() {
               <div>
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Vehicle Number</label>
                 <input value={form.vehicle_number} onChange={e => setForm({...form, vehicle_number: e.target.value})} placeholder="e.g. TN 36 AB 1234"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Driver Info / Fleet Alias</label>
+                <input value={form.custom_driver_info || ''} onChange={e => setForm({...form, custom_driver_info: e.target.value})} placeholder="e.g. Selvam Driver (+91 94432 55902)"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
               </div>
               <div>

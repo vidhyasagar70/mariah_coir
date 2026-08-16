@@ -327,6 +327,11 @@ export default function AccountManagement() {
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
               </div>
               <div>
+                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Ref No / UPI Transaction ID / Cheque No</label>
+                <input value={txForm.custom_reference_no || ''} onChange={e => setTxForm({...txForm, custom_reference_no: e.target.value})} placeholder="e.g. UPI/129381923 / CHQ-88231"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+              </div>
+              <div>
                 <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Description</label>
                 <textarea value={txForm.description} onChange={e => setTxForm({...txForm, description: e.target.value})} rows={2} placeholder="Optional notes..."
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none resize-none" />
