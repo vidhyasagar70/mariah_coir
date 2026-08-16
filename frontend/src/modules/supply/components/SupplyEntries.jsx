@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2, X, Search, Filter, Calendar } from 'lucide-react';
+import { FileText, Plus, Trash2, X, Search, Filter, Calendar, Truck, PackageCheck, AlertCircle } from 'lucide-react';
 
 const API = 'http://localhost:5000/api/supply';
 
@@ -16,12 +16,14 @@ export default function SupplyEntries() {
   const [filterMaterial, setFilterMaterial] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [showModal, setShowModal] = useState(false);
   const [resolvedRate, setResolvedRate] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     supplier_id: '', raw_material_id: '', vehicle_type_id: '', vehicle_id: '',
     entry_date: new Date().toISOString().split('T')[0],
-    quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: ''
+    quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: '',
+    custom_vehicle_name: '', custom_vehicle_rate: '', custom_vehicle_number: ''
   });
 
   const fetchData = async () => {
@@ -69,9 +71,9 @@ export default function SupplyEntries() {
     }
   }, [form.supplier_id]);
 
-  // Auto-resolve price when material + vehicle type selected
+  // Auto-resolve price when material + vehicle type selected (for registered vehicles)
   useEffect(() => {
-    if (form.vehicle_type_id === 'CUSTOM') return;
+    if (form.vehicle_type_id === 'CUSTOM' || !form.vehicle_type_id) return;
     if (form.raw_material_id && form.vehicle_type_id && form.entry_date) {
       fetch(`${API}/pricing/resolve?raw_material_id=${form.raw_material_id}&vehicle_type_id=${form.vehicle_type_id}&date=${form.entry_date}`)
         .then(r => r.json())
@@ -87,17 +89,6 @@ export default function SupplyEntries() {
     }
   }, [form.raw_material_id, form.vehicle_type_id, form.entry_date]);
 
-  const openCreate = () => {
-    setForm({
-      supplier_id: '', raw_material_id: '', vehicle_type_id: '', vehicle_id: '',
-      entry_date: new Date().toISOString().split('T')[0],
-      quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: '',
-      custom_vehicle_name: '', custom_vehicle_rate: ''
-    });
-    setResolvedRate(null);
-    setShowModal(true);
-  };
-
   const handleSave = async () => {
     if (!form.supplier_id || !form.raw_material_id || !form.vehicle_type_id || !form.entry_date) {
       alert('Please fill all required fields (*).');
@@ -109,35 +100,53 @@ export default function SupplyEntries() {
         alert('Please enter the custom vehicle name.');
         return;
       }
-      if (!form.custom_vehicle_rate || parseFloat(form.custom_vehicle_rate) <= 0) {
-        alert('Please enter a valid rate per 1 load for the custom vehicle.');
+      if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) {
+        alert('Please enter a valid rate per trip for the custom truck.');
         return;
       }
     }
 
     if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) {
-      alert('Please enter a valid rate per unit.');
+      alert('Please enter a valid rate per trip.');
       return;
     }
 
-    const res = await fetch(`${API}/entries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    });
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...form,
+        custom_vehicle_rate: form.rate_per_unit
+      };
+      const res = await fetch(`${API}/entries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    if (res.ok) {
-      setShowModal(false);
-      fetchData();
-      fetchMasters(); // Refresh vehicle types in case custom vehicle type was auto-registered
-    } else {
-      const err = await res.json();
-      alert(err.error || 'Failed to create entry');
+      if (res.ok) {
+        // Reset form
+        setForm({
+          supplier_id: '', raw_material_id: '', vehicle_type_id: '', vehicle_id: '',
+          entry_date: new Date().toISOString().split('T')[0],
+          quantity: '1', rate_per_unit: '', payment_mode: 'Credit', notes: '',
+          custom_vehicle_name: '', custom_vehicle_rate: '', custom_vehicle_number: ''
+        });
+        setResolvedRate(null);
+        fetchData();
+        fetchMasters(); // Refresh vehicle types
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to record goods inward receipt.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error while saving receipt.');
     }
+    setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this supply entry?')) return;
+    if (!confirm('Delete this goods inward receipt?')) return;
     await fetch(`${API}/entries/${id}`, { method: 'DELETE' });
     fetchData();
   };
@@ -147,277 +156,256 @@ export default function SupplyEntries() {
     if (isNaN(num)) return '0.00';
     return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-  const calcTotal = (parseFloat(form.rate_per_unit) || 0) * (parseFloat(form.quantity) || 0);
+
+  const calcTotal = (parseFloat(form.rate_per_unit) || 0) * (parseFloat(form.quantity) || 1);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center space-x-2">
-          <div className="p-2 rounded-xl bg-[#E2D2C2]"><FileText className="h-5 w-5 text-[#965E36]" /></div>
-          <div>
-            <h2 className="text-base font-extrabold text-[#2E1A0C]">Supply Entries</h2>
-            <p className="text-[11px] text-[#7C5A3E]">Raw material receipt log with auto-price resolution</p>
+    <div className="space-y-6">
+      {/* Module Title Header */}
+      <div className="flex items-center space-x-3">
+        <div className="p-2.5 rounded-2xl bg-[#E2D2C2] text-[#965E36]">
+          <FileText className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-xl font-extrabold text-[#2E1A0C] tracking-tight">SM-02: Material Receipts Management (Goods Inward)</h1>
+          <p className="text-xs text-[#7C5A3E] font-medium">
+            Log inward shipments of Green Husk, Brown Husk, Fuel, and Water with auto-calculated rates & Custom Truck support
+          </p>
+        </div>
+      </div>
+
+      {/* Record Material Receipt Top Card Form */}
+      <div className="bg-white rounded-3xl border border-[#D6C4B0] shadow-sm overflow-hidden">
+        <div className="p-6 space-y-5">
+          {/* Card Header */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#965E36] flex items-center justify-center shadow-sm">
+              <Truck className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-extrabold text-[#2E1A0C]">Record Material Receipt (Goods Inward)</h2>
+              <p className="text-[11px] text-[#7C5A3E] font-medium">Includes Custom Truck option & auto-calculates total goods inward amount</p>
+            </div>
           </div>
-        </div>
-        <button onClick={openCreate} className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#965E36] text-white text-xs font-bold hover:bg-[#7A4A28] transition shadow-xs cursor-pointer">
-          <Plus className="h-3.5 w-3.5" /><span>New Entry</span>
-        </button>
-      </div>
 
-      {/* KPI Summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Entries</p>
-          <p className="text-2xl font-extrabold text-[#2E1A0C] mt-1">{summary.totalEntries}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Quantity</p>
-          <p className="text-2xl font-extrabold text-blue-600 mt-1">{parseFloat(summary.totalQuantity || 0).toFixed(1)}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Amount</p>
-          <p className="text-2xl font-extrabold text-[#965E36] mt-1">₹ {fmt(summary.totalAmount)}</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-        <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}
-          className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-          <option value="">All Suppliers</option>
-          {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <select value={filterMaterial} onChange={e => setFilterMaterial(e.target.value)}
-          className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-          <option value="">All Materials</option>
-          {rawMaterials.map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
-        </select>
-        <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date"
-          className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-        <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date"
-          className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-        <div className="relative flex-1 sm:flex-none">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8C694E]" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
-            className="w-full sm:w-40 pl-9 pr-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] placeholder-[#8C694E] focus:ring-2 focus:ring-[#965E36] outline-none transition" />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-[#D6C4B0] overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-[#EFE6DC] text-[#5C3B21]">
-              <tr>
-                <th className="text-left px-3 py-3 font-bold">Code</th>
-                <th className="text-left px-3 py-3 font-bold">Date</th>
-                <th className="text-left px-3 py-3 font-bold">Supplier</th>
-                <th className="text-left px-3 py-3 font-bold">Material</th>
-                <th className="text-left px-3 py-3 font-bold">Vehicle</th>
-                <th className="text-right px-3 py-3 font-bold">Qty</th>
-                <th className="text-right px-3 py-3 font-bold">Rate (₹)</th>
-                <th className="text-right px-3 py-3 font-bold">Total (₹)</th>
-                <th className="text-left px-3 py-3 font-bold">Mode</th>
-                <th className="text-left px-3 py-3 font-bold">Status</th>
-                <th className="text-center px-3 py-3 font-bold">Act</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EFE6DC]">
-              {loading ? (
-                <tr><td colSpan="11" className="text-center py-8 text-[#8C694E]">Loading...</td></tr>
-              ) : data.length === 0 ? (
-                <tr><td colSpan="11" className="text-center py-8 text-[#8C694E]">No supply entries found. Create your first receipt.</td></tr>
-              ) : data.map((item) => (
-                <tr key={item.id} className="hover:bg-[#FAF7F2] transition">
-                  <td className="px-3 py-3">
-                    <span className="px-1.5 py-0.5 rounded bg-[#EFE6DC] text-[#965E36] text-[10px] font-mono font-bold">{item.entry_code}</span>
-                  </td>
-                  <td className="px-3 py-3 text-[#5C3B21]">{item.entry_date?.split('T')[0]}</td>
-                  <td className="px-3 py-3">
-                    <span className="font-semibold text-[#2E1A0C]">{item.supplier_name}</span>
-                  </td>
-                  <td className="px-3 py-3 text-[#5C3B21]">{item.raw_material_name}</td>
-                  <td className="px-3 py-3 text-[#7C5A3E]">{item.vehicle_type_name}{item.vehicle_number ? ` (${item.vehicle_number})` : ''}</td>
-                  <td className="px-3 py-3 text-right font-mono text-[#2E1A0C]">{parseFloat(item.quantity).toFixed(1)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-[#5C3B21]">{fmt(item.rate_per_unit)}</td>
-                  <td className="px-3 py-3 text-right font-bold font-mono text-[#2E1A0C]">₹ {fmt(item.total_amount)}</td>
-                  <td className="px-3 py-3">
-                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${item.payment_mode === 'Credit' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                      {item.payment_mode}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${item.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 cursor-pointer transition"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Create Entry Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-[#D6C4B0] w-full max-w-2xl p-6 shadow-xl space-y-4 mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-[#2E1A0C]">New Supply Entry</h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-[#E2D2C2] cursor-pointer"><X className="h-4 w-4 text-[#7C5A3E]" /></button>
+          {/* Row 1: Supplier, Material Type, Date */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Select Supplier *</label>
+              <select value={form.supplier_id} onChange={e => setForm({...form, supplier_id: e.target.value, vehicle_id: ''})}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium">
+                <option value="">Select Supplier</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_code} – {s.name}</option>)}
+              </select>
             </div>
-            <div className="space-y-3">
-              {/* Row 1: Supplier + Date */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Supplier *</label>
-                  <select value={form.supplier_id} onChange={e => setForm({...form, supplier_id: e.target.value, vehicle_id: ''})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-                    <option value="">Select Supplier</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_code} – {s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Entry Date *</label>
-                  <input type="date" value={form.entry_date} onChange={e => setForm({...form, entry_date: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-                </div>
-              </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Material Type *</label>
+              <select value={form.raw_material_id} onChange={e => setForm({...form, raw_material_id: e.target.value})}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium">
+                <option value="">Select Material</option>
+                {rawMaterials.map(rm => <option key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Receipt Date *</label>
+              <input type="date" value={form.entry_date} onChange={e => setForm({...form, entry_date: e.target.value})}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium" />
+            </div>
+          </div>
 
-              {/* Row 2: Material + Vehicle Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Raw Material *</label>
-                  <select value={form.raw_material_id} onChange={e => setForm({...form, raw_material_id: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-                    <option value="">Select Material</option>
-                    {rawMaterials.map(rm => <option key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Vehicle Type *</label>
-                  <select value={form.vehicle_type_id} onChange={e => {
-                    const val = e.target.value;
-                    if (val === 'CUSTOM') {
-                      const initialCustomRate = form.custom_vehicle_rate ? parseFloat(form.custom_vehicle_rate) : null;
-                      setForm(prev => ({ ...prev, vehicle_type_id: val, rate_per_unit: prev.custom_vehicle_rate || '' }));
-                      setResolvedRate(initialCustomRate && !isNaN(initialCustomRate) ? initialCustomRate : null);
-                    } else {
-                      setForm(prev => ({ ...prev, vehicle_type_id: val }));
-                    }
-                  }}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
-                    <option value="">Select Vehicle Type</option>
-                    {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}{vt.capacity ? ` (${vt.capacity})` : ''}</option>)}
-                    <option value="CUSTOM">+ Custom / Unregistered Vehicle</option>
-                  </select>
-                </div>
-              </div>
+          {/* Row 2: Vehicle Type, Trip Count, Rate Per Trip */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Vehicle Type *</label>
+              <select value={form.vehicle_type_id} onChange={e => {
+                const val = e.target.value;
+                if (val === 'CUSTOM') {
+                  const initialRate = form.custom_vehicle_rate || form.rate_per_unit || '';
+                  setForm(prev => ({ ...prev, vehicle_type_id: val, rate_per_unit: initialRate }));
+                  setResolvedRate(initialRate ? parseFloat(initialRate) : null);
+                } else {
+                  setForm(prev => ({ ...prev, vehicle_type_id: val }));
+                }
+              }}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
+                <option value="">Select Vehicle Type</option>
+                {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}{vt.capacity ? ` (${vt.capacity})` : ''}</option>)}
+                <option value="CUSTOM">🚛 Custom Truck (Manual Rate Entry)</option>
+              </select>
+            </div>
 
-              {/* Custom Vehicle Details Inline Box */}
-              {form.vehicle_type_id === 'CUSTOM' && (
-                <div className="bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#D6C4B0] space-y-3">
-                  <div className="flex items-center space-x-1.5 text-xs font-bold text-[#965E36]">
-                    <FileText className="h-4 w-4" />
-                    <span>Custom / Unregistered Vehicle Details</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Name / Type *</label>
-                      <input value={form.custom_vehicle_name || ''} onChange={e => setForm({...form, custom_vehicle_name: e.target.value})} placeholder="e.g. Local Eicher 14-ft / Special Tipper"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Rate for 1 Load (₹) *</label>
-                      <input type="number" step="0.01" value={form.custom_vehicle_rate || ''} onChange={e => {
-                        const val = e.target.value;
-                        const num = parseFloat(val);
-                        setForm(prev => ({ ...prev, custom_vehicle_rate: val, rate_per_unit: val }));
-                        setResolvedRate(!isNaN(num) && num > 0 ? num : null);
-                      }} placeholder="e.g. 3500.00"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-bold text-[#965E36]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Vehicle (optional) */}
-              {vehicles.length > 0 && form.vehicle_type_id !== 'CUSTOM' && (
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Specific Vehicle (Optional)</label>
-                  <select value={form.vehicle_id} onChange={e => setForm({...form, vehicle_id: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-                    <option value="">Any / Not Specified</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicle_type_name} – {v.vehicle_number || 'No Number'}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* Price Resolution Indicator */}
-              {resolvedRate !== null && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 font-semibold flex items-center justify-between">
-                  <span>✓ {form.vehicle_type_id === 'CUSTOM' ? 'Custom vehicle rate applied:' : 'Auto-fetched rate for 1 load:'}</span>
-                  <span className="font-extrabold text-emerald-800 text-sm">₹ {fmt(resolvedRate)} / load</span>
-                </div>
-              )}
-
-              {/* Row 3: Quantity + Rate + Payment */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Quantity *</label>
-                  <input type="number" step="0.1" min="0.1" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Rate / Unit (₹) *</label>
-                  <input type="number" step="0.01" value={form.rate_per_unit} onChange={e => setForm({...form, rate_per_unit: e.target.value})} placeholder="Auto or manual"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Payment Mode</label>
-                  <select value={form.payment_mode} onChange={e => setForm({...form, payment_mode: e.target.value})}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
-                    <option value="Credit">Credit (Payable)</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Online">Online / UPI</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Calculated Total */}
-              <div className="bg-[#EFE6DC] rounded-xl p-4 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#5C3B21]">Calculated Total</span>
-                <span className="text-xl font-extrabold text-[#2E1A0C]">₹ {fmt(calcTotal)}</span>
-              </div>
-
-              {/* Custom Vehicle Reg No / Driver Override */}
-              <div>
-                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle Reg No / Scale Note (Optional)</label>
-                <input value={form.custom_vehicle_number || ''} onChange={e => setForm({...form, custom_vehicle_number: e.target.value})} placeholder="e.g. TN 38 B 9912 / Weighbridge Slip #4410"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Notes & Remarks</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} placeholder="e.g. Quality inspection passed / Wet husk deduction 50kg"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none resize-none" />
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Trip Count *</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-xs font-bold text-[#7C5A3E]">#</span>
+                <input type="number" min="1" step="1" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})}
+                  className="w-full pl-8 pr-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold" />
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-[#5C3B21] hover:bg-[#E2D2C2] transition cursor-pointer">Cancel</button>
-              <button onClick={handleSave} className="px-5 py-2 rounded-xl bg-[#965E36] text-white text-xs font-bold hover:bg-[#7A4A28] transition shadow-xs cursor-pointer">
-                Confirm Entry
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Rate Per Trip (₹) *</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-xs font-bold text-[#7C5A3E]">₹</span>
+                <input type="number" step="0.01" value={form.rate_per_unit} onChange={e => {
+                  const val = e.target.value;
+                  const num = parseFloat(val);
+                  setForm(prev => ({ ...prev, rate_per_unit: val, custom_vehicle_rate: val }));
+                  setResolvedRate(!isNaN(num) && num > 0 ? num : null);
+                }}
+                disabled={form.vehicle_type_id !== 'CUSTOM' && resolvedRate !== null}
+                placeholder="Auto or manual rate"
+                className={`w-full pl-8 pr-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] outline-none font-semibold ${
+                  form.vehicle_type_id !== 'CUSTOM' && resolvedRate !== null
+                    ? 'bg-[#EFE6DC] text-[#5C3B21] cursor-not-allowed'
+                    : 'bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36]'
+                }`} />
+              </div>
+            </div>
+          </div>
+
+          {/* Inline Custom Truck Name & Reg No */}
+          {form.vehicle_type_id === 'CUSTOM' && (
+            <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#D6C4B0] space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-bold text-[#965E36]">
+                <Truck className="h-4 w-4" />
+                <span>Custom Truck Information</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Truck / Vehicle Name *</label>
+                  <input value={form.custom_vehicle_name || ''} onChange={e => setForm({...form, custom_vehicle_name: e.target.value})} placeholder="e.g. Local Eicher 14-ft / Unregistered Tipper"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Vehicle Registration No (Optional)</label>
+                  <input value={form.custom_vehicle_number || ''} onChange={e => setForm({...form, custom_vehicle_number: e.target.value})} placeholder="e.g. TN 38 B 9912 / Weighbridge Slip #4410"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Price Auto-Fetch Resolution Banner */}
+          {resolvedRate !== null && form.vehicle_type_id !== 'CUSTOM' && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 font-medium flex items-center justify-between">
+              <span>✓ Auto-fetched rate per trip from pricing table:</span>
+              <span className="font-extrabold text-emerald-900">₹ {fmt(resolvedRate)} / trip</span>
+            </div>
+          )}
+
+          {/* Dark Calculation Banner & Record Button */}
+          <div className="bg-[#2E1A0C] text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg border border-[#965E36]/30">
+            <div className="space-y-0.5 text-center sm:text-left">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#E2D2C2]">Total Calculated Amount</p>
+              <p className="text-xs font-semibold text-[#D6C4B0]">
+                {form.quantity || 1} trip(s) × ₹ {fmt(form.rate_per_unit || 0)} / trip
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-[#34D399]">
+                ₹ {fmt(calcTotal)}
+              </span>
+              <button onClick={handleSave} disabled={submitting}
+                className="flex items-center space-x-2 px-5 py-3 rounded-xl bg-[#965E36] hover:bg-[#7A4A28] text-white text-xs font-extrabold transition cursor-pointer shadow-md active:scale-95 disabled:opacity-50">
+                <PackageCheck className="h-4 w-4 text-white" />
+                <span>{submitting ? 'Recording...' : 'Record Goods Inward'}</span>
               </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-[#FAF7F2] rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Inward Receipts</p>
+          <p className="text-2xl font-black text-[#2E1A0C] mt-1">{summary.totalEntries}</p>
+        </div>
+        <div className="bg-[#FAF7F2] rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Trips Inward</p>
+          <p className="text-2xl font-black text-blue-700 mt-1">{parseFloat(summary.totalQuantity || 0).toFixed(0)} Trips</p>
+        </div>
+        <div className="bg-[#FAF7F2] rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Inward Amount</p>
+          <p className="text-2xl font-black text-[#965E36] mt-1">₹ {fmt(summary.totalAmount)}</p>
+        </div>
+      </div>
+
+      {/* Receipts Table Section */}
+      <div className="bg-white rounded-3xl border border-[#D6C4B0] shadow-xs overflow-hidden p-6 space-y-4">
+        {/* Table Filters */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 text-xs font-bold text-[#5C3B21]">
+            <Filter className="h-4 w-4 text-[#965E36]" />
+            <span>Receipt Filters:</span>
+          </div>
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2 w-full sm:w-auto">
+            <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
+              <option value="">All Suppliers</option>
+              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <select value={filterMaterial} onChange={e => setFilterMaterial(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
+              <option value="">All Materials</option>
+              {rawMaterials.map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
+            </select>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date"
+              className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date"
+              className="px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+          </div>
+        </div>
+
+        {/* Data Table */}
+        {loading ? (
+          <div className="py-12 text-center text-xs text-[#7C5A3E]">Loading inward receipts...</div>
+        ) : data.length === 0 ? (
+          <div className="py-16 text-center space-y-2">
+            <FileText className="h-10 w-10 text-[#D6C4B0] mx-auto" />
+            <p className="text-sm font-bold text-[#2E1A0C]">No Receipts Recorded</p>
+            <p className="text-xs text-[#7C5A3E]">Record a goods inward receipt above to begin tracking material arrivals.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-[#2E1A0C]">
+              <thead className="bg-[#EFE6DC] text-[10px] font-black uppercase text-[#5C3B21] border-b border-[#D6C4B0]">
+                <tr>
+                  <th className="py-3 px-4">Receipt #</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Supplier</th>
+                  <th className="py-3 px-4">Material</th>
+                  <th className="py-3 px-4">Vehicle Type</th>
+                  <th className="py-3 px-4 text-center">Trips</th>
+                  <th className="py-3 px-4 text-right">Rate / Trip</th>
+                  <th className="py-3 px-4 text-right">Total Amount</th>
+                  <th className="py-3 px-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EFE6DC]">
+                {data.map(row => (
+                  <tr key={row.id} className="hover:bg-[#FAF7F2] transition">
+                    <td className="py-3 px-4 font-bold text-[#965E36]">{row.entry_code || row.supply_number}</td>
+                    <td className="py-3 px-4 font-medium text-[#7C5A3E]">{row.entry_date || row.date}</td>
+                    <td className="py-3 px-4 font-semibold text-[#2E1A0C]">{row.supplier_name}</td>
+                    <td className="py-3 px-4 font-medium text-[#5C3B21]">{row.raw_material_name}</td>
+                    <td className="py-3 px-4 font-medium text-[#7C5A3E]">{row.vehicle_type_name || 'Custom Vehicle'}</td>
+                    <td className="py-3 px-4 text-center font-bold text-blue-700">{row.quantity}</td>
+                    <td className="py-3 px-4 text-right font-medium text-[#5C3B21]">₹ {fmt(row.rate_per_unit || row.price)}</td>
+                    <td className="py-3 px-4 text-right font-extrabold text-[#965E36]">₹ {fmt(row.total_amount)}</td>
+                    <td className="py-3 px-4 text-center">
+                      <button onClick={() => handleDelete(row.id)} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition cursor-pointer" title="Delete Receipt">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
