@@ -62,6 +62,96 @@ export async function initDb() {
         CREATE SEQUENCE IF NOT EXISTS supplier_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS receipt_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS settlement_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS product_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS dust_master_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS dust_customer_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS dust_sale_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS sales_dispatch_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS expense_seq START 1;
+
+        CREATE TABLE IF NOT EXISTS products (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'PRD-' || LPAD(CAST(nextval('product_seq') AS TEXT), 3, '0'),
+            product_name VARCHAR(150) NOT NULL,
+            category VARCHAR(50) NOT NULL,
+            unit VARCHAR(30) NOT NULL DEFAULT 'Bundle',
+            approx_bundle_weight NUMERIC(10, 2) NOT NULL,
+            sell_price_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS expenses (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'EXP-' || LPAD(CAST(nextval('expense_seq') AS TEXT), 4, '0'),
+            expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            category VARCHAR(50) NOT NULL CHECK (category IN ('Driver Salary', 'Employee Salary', 'Diesel Expense', 'Miscellaneous', 'Utility & Maintenance')),
+            amount NUMERIC(10, 2) NOT NULL,
+            payment_mode VARCHAR(30) DEFAULT 'Cash' CHECK (payment_mode IN ('Cash', 'Bank Transfer', 'UPI', 'Cheque')),
+            beneficiary_name VARCHAR(100),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS sales_dispatches (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'DISP-' || LPAD(CAST(nextval('sales_dispatch_seq') AS TEXT), 4, '0'),
+            customer_name VARCHAR(150) NOT NULL,
+            customer_phone VARCHAR(20),
+            order_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            warehouse VARCHAR(100),
+            vehicle_type VARCHAR(50) NOT NULL,
+            vehicle_number VARCHAR(30) NOT NULL,
+            product_id VARCHAR(20) REFERENCES products(id) ON DELETE RESTRICT,
+            quantity_units INT NOT NULL,
+            approx_unit_weight NUMERIC(10, 2) NOT NULL,
+            total_approx_weight NUMERIC(10, 2) NOT NULL,
+            actual_scale_weight NUMERIC(10, 2) NOT NULL,
+            weight_difference NUMERIC(10, 2) NOT NULL,
+            rate_per_kg NUMERIC(10, 2) NOT NULL,
+            total_sales_amount NUMERIC(10, 2) NOT NULL,
+            notes TEXT,
+            payment_status VARCHAR(30) DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'Partial', 'Paid')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS dust_master (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'DST-' || LPAD(CAST(nextval('dust_master_seq') AS TEXT), 3, '0'),
+            dust_name VARCHAR(100) NOT NULL,
+            standard_vehicle_type VARCHAR(50) NOT NULL CHECK (standard_vehicle_type IN ('Tractor', 'Pickup', '6-Wheeler Tipper', '10-Wheeler Lorry', 'Trailer')),
+            custom_vehicle_name VARCHAR(100),
+            fixed_rate_per_load NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS dust_customers (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'DCUS-' || LPAD(CAST(nextval('dust_customer_seq') AS TEXT), 3, '0'),
+            customer_name VARCHAR(100) NOT NULL,
+            phone_number VARCHAR(20) NOT NULL,
+            company_name VARCHAR(150),
+            preferred_vehicle_type VARCHAR(50) NOT NULL,
+            advance_amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            current_advance_balance NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            advance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            delivery_due_date DATE NOT NULL,
+            queue_status VARCHAR(30) DEFAULT 'In Queue' CHECK (queue_status IN ('In Queue', 'Partial Delivered', 'Completed', 'Cancelled')),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS dust_sales (
+            id VARCHAR(20) PRIMARY KEY DEFAULT 'DSLE-' || LPAD(CAST(nextval('dust_sale_seq') AS TEXT), 4, '0'),
+            customer_id VARCHAR(20) REFERENCES dust_customers(id) ON DELETE RESTRICT,
+            dust_id VARCHAR(20) REFERENCES dust_master(id),
+            vehicle_type VARCHAR(50) NOT NULL,
+            vehicle_number VARCHAR(30) NOT NULL,
+            dispatch_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            loads_count INT NOT NULL DEFAULT 1,
+            rate_per_load NUMERIC(10, 2) NOT NULL,
+            total_sale_amount NUMERIC(10, 2) NOT NULL,
+            amount_deducted_from_advance NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            remaining_balance_due NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            payment_status VARCHAR(30) DEFAULT 'Deducted from Advance' CHECK (payment_status IN ('Deducted from Advance', 'Payment Due', 'Fully Settled')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
 
         CREATE TABLE IF NOT EXISTS master_vehicles (
             id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -618,6 +708,109 @@ export async function initDb() {
       );
     `);
 
+    try {
+      const prdInfo = await allSqlite(`PRAGMA table_info(products)`);
+      if (prdInfo.length > 0 && !prdInfo.some(c => c.name === 'sell_price_per_kg')) {
+        await runSqlite(`DROP TABLE products;`);
+      }
+    } catch (e) {}
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS products (
+          id TEXT PRIMARY KEY,
+          product_name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          unit TEXT NOT NULL DEFAULT 'Bundle',
+          approx_bundle_weight REAL NOT NULL,
+          sell_price_per_kg REAL NOT NULL DEFAULT 0.00,
+          status TEXT DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS dust_master (
+          id TEXT PRIMARY KEY,
+          dust_name TEXT NOT NULL,
+          standard_vehicle_type TEXT NOT NULL,
+          custom_vehicle_name TEXT,
+          fixed_rate_per_load REAL NOT NULL DEFAULT 0.00,
+          status TEXT DEFAULT 'Active',
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS dust_customers (
+          id TEXT PRIMARY KEY,
+          customer_name TEXT NOT NULL,
+          phone_number TEXT NOT NULL,
+          company_name TEXT,
+          preferred_vehicle_type TEXT NOT NULL,
+          advance_amount_paid REAL NOT NULL DEFAULT 0.00,
+          current_advance_balance REAL NOT NULL DEFAULT 0.00,
+          advance_date TEXT NOT NULL DEFAULT (date('now')),
+          delivery_due_date TEXT NOT NULL,
+          queue_status TEXT DEFAULT 'In Queue',
+          notes TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS dust_sales (
+          id TEXT PRIMARY KEY,
+          customer_id TEXT NOT NULL,
+          dust_id TEXT,
+          vehicle_type TEXT NOT NULL,
+          vehicle_number TEXT NOT NULL,
+          dispatch_date TEXT NOT NULL DEFAULT (date('now')),
+          loads_count INTEGER NOT NULL DEFAULT 1,
+          rate_per_load REAL NOT NULL,
+          total_sale_amount REAL NOT NULL,
+          amount_deducted_from_advance REAL NOT NULL DEFAULT 0.00,
+          remaining_balance_due REAL NOT NULL DEFAULT 0.00,
+          payment_status TEXT DEFAULT 'Deducted from Advance',
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS sales_dispatches (
+          id TEXT PRIMARY KEY,
+          customer_name TEXT NOT NULL,
+          customer_phone TEXT,
+          order_date TEXT NOT NULL DEFAULT (date('now')),
+          warehouse TEXT,
+          vehicle_type TEXT NOT NULL,
+          vehicle_number TEXT NOT NULL,
+          product_id TEXT NOT NULL,
+          quantity_units INTEGER NOT NULL,
+          approx_unit_weight REAL NOT NULL,
+          total_approx_weight REAL NOT NULL,
+          actual_scale_weight REAL NOT NULL,
+          weight_difference REAL NOT NULL,
+          rate_per_kg REAL NOT NULL,
+          total_sales_amount REAL NOT NULL,
+          notes TEXT,
+          payment_status TEXT DEFAULT 'Pending',
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS expenses (
+          id TEXT PRIMARY KEY,
+          expense_date TEXT NOT NULL DEFAULT (date('now')),
+          category TEXT NOT NULL,
+          amount REAL NOT NULL,
+          payment_mode TEXT DEFAULT 'Cash',
+          beneficiary_name TEXT,
+          notes TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
     console.log('[DB] SQLite schema initialized.');
   }
 }
@@ -630,6 +823,12 @@ export async function getNextId(prefix) {
     if (prefix === 'STL') { seqName = 'settlement_seq'; padLen = 3; }
     if (prefix === 'MN') { seqName = 'maintenance_seq'; padLen = 3; }
     if (prefix === 'SE') { seqName = 'supply_entry_seq'; padLen = 4; }
+    if (prefix === 'PRD') { seqName = 'product_seq'; padLen = 3; }
+    if (prefix === 'DST') { seqName = 'dust_master_seq'; padLen = 3; }
+    if (prefix === 'DCUS') { seqName = 'dust_customer_seq'; padLen = 3; }
+    if (prefix === 'DSLE') { seqName = 'dust_sale_seq'; padLen = 4; }
+    if (prefix === 'DISP') { seqName = 'sales_dispatch_seq'; padLen = 4; }
+    if (prefix === 'EXP') { seqName = 'expense_seq'; padLen = 4; }
 
     const res = await pgPool.query(`SELECT nextval('${seqName}') as val`);
     return `${prefix}-${String(res.rows[0].val).padStart(padLen, '0')}`;
@@ -640,6 +839,12 @@ export async function getNextId(prefix) {
     if (prefix === 'STL') { table = 'settlements'; padLen = 3; }
     if (prefix === 'MN') { table = 'maintenance_register'; padLen = 3; }
     if (prefix === 'SE') { table = 'supply_entries'; padLen = 4; }
+    if (prefix === 'PRD') { table = 'products'; padLen = 3; }
+    if (prefix === 'DST') { table = 'dust_master'; padLen = 3; }
+    if (prefix === 'DCUS') { table = 'dust_customers'; padLen = 3; }
+    if (prefix === 'DSLE') { table = 'dust_sales'; padLen = 4; }
+    if (prefix === 'DISP') { table = 'sales_dispatches'; padLen = 4; }
+    if (prefix === 'EXP') { table = 'expenses'; padLen = 4; }
 
     const row = await getSqlite(`SELECT id FROM ${table} ORDER BY created_at DESC, id DESC LIMIT 1`);
     let nextNum = 1;

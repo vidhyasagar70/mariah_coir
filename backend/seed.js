@@ -3,12 +3,18 @@ import { dbQuery, generateUuid, initDb } from './src/config/db.js';
 export async function seedData() {
   await initDb();
 
+  await dbQuery(`DELETE FROM expenses;`);
+  await dbQuery(`DELETE FROM sales_dispatches;`);
   await dbQuery(`DELETE FROM settlements;`);
   await dbQuery(`DELETE FROM supplier_ledger;`);
   await dbQuery(`DELETE FROM receipts;`);
   await dbQuery(`DELETE FROM supplier_vehicles;`);
   await dbQuery(`DELETE FROM suppliers;`);
   await dbQuery(`DELETE FROM master_vehicles;`);
+  await dbQuery(`DELETE FROM products;`);
+  await dbQuery(`DELETE FROM dust_sales;`);
+  await dbQuery(`DELETE FROM dust_customers;`);
+  await dbQuery(`DELETE FROM dust_master;`);
 
   console.log('[SEED] Database cleared.');
 
@@ -808,6 +814,115 @@ export async function seedData() {
     [generateUuid(), COMPANY_ID, abcSupplierId, COMPANY_ID]
   );
 
-  console.log('[SEED] Master vehicles, Coir ERP data, Maintenance records, Employee & Attendance module, and Production Supplier Management module populated successfully.');
+  // 8. Seed Products Directory
+  const productsToSeed = [
+    {
+      id: 'PRD-001',
+      product_name: 'Golden Coir Fibre Bales',
+      category: 'Coir Fibre',
+      unit: 'Bale',
+      approx_bundle_weight: 120.00,
+      sell_price_per_kg: 28.50,
+      status: 'Active'
+    },
+    {
+      id: 'PRD-002',
+      product_name: '2-Ply High-Spin Coir Yarn',
+      category: 'Coir Yarn',
+      unit: 'Bundle',
+      approx_bundle_weight: 35.00,
+      sell_price_per_kg: 35.00,
+      status: 'Active'
+    },
+    {
+      id: 'PRD-003',
+      product_name: 'Machine Curled Coir Rope',
+      category: 'Curled Coir',
+      unit: 'Bale',
+      approx_bundle_weight: 90.00,
+      sell_price_per_kg: 31.00,
+      status: 'Active'
+    },
+    {
+      id: 'PRD-004',
+      product_name: 'Heavy-Duty 3-Strand Coir Rope',
+      category: 'Coir Rope',
+      unit: 'Piece',
+      approx_bundle_weight: 25.00,
+      sell_price_per_kg: 30.00,
+      status: 'Active'
+    },
+    {
+      id: 'PRD-005',
+      product_name: 'Compressed Coir Pith Dust Bales',
+      category: 'Pith/Dust',
+      unit: 'Ton',
+      approx_bundle_weight: 1000.00,
+      sell_price_per_kg: 18.50,
+      status: 'Active'
+    }
+  ];
+
+  for (const prd of productsToSeed) {
+    await dbQuery(
+      `INSERT INTO products (id, product_name, category, unit, approx_bundle_weight, sell_price_per_kg, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [prd.id, prd.product_name, prd.category, prd.unit, prd.approx_bundle_weight, prd.sell_price_per_kg, prd.status]
+    );
+  }
+
+  // 9. Seed Dust Sub-System
+  await dbQuery(
+    `INSERT INTO dust_master (id, dust_name, standard_vehicle_type, custom_vehicle_name, fixed_rate_per_load, status)
+     VALUES ('DST-001', 'Raw Coir Pith', 'Tractor', 'Rajan Blue Tractor', 1800.00, 'Active')`
+  );
+  await dbQuery(
+    `INSERT INTO dust_master (id, dust_name, standard_vehicle_type, custom_vehicle_name, fixed_rate_per_load, status)
+     VALUES ('DST-002', 'Washed Coir Dust', '6-Wheeler Tipper', 'Factory Tipper 1', 4500.00, 'Active')`
+  );
+  await dbQuery(
+    `INSERT INTO dust_master (id, dust_name, standard_vehicle_type, custom_vehicle_name, fixed_rate_per_load, status)
+     VALUES ('DST-003', 'Composted Pith', '10-Wheeler Lorry', 'Lakshmi Heavy Lorry', 7500.00, 'Active')`
+  );
+
+  await dbQuery(
+    `INSERT INTO dust_customers (id, customer_name, phone_number, company_name, preferred_vehicle_type, advance_amount_paid, current_advance_balance, advance_date, delivery_due_date, queue_status, notes)
+     VALUES ('DCUS-001', 'Green Leaf Bio-Farm', '+91 98450 11223', 'Green Leaf Organics Ltd', 'Tractor', 18000.00, 12600.00, '2026-08-01', '2026-08-25', 'Partial Delivered', 'Delivered 3 loads of Rajan Tractor pith so far.')`
+  );
+  await dbQuery(
+    `INSERT INTO dust_customers (id, customer_name, phone_number, company_name, preferred_vehicle_type, advance_amount_paid, current_advance_balance, advance_date, delivery_due_date, queue_status, notes)
+     VALUES ('DCUS-002', 'Murugan Nursery Gardens', '+91 97890 55441', 'Murugan Agro Nursery', '6-Wheeler Tipper', 45000.00, 45000.00, '2026-08-10', '2026-08-30', 'In Queue', 'Awaiting washed dust batch availability.')`
+  );
+
+  await dbQuery(
+    `INSERT INTO dust_sales (id, customer_id, dust_id, vehicle_type, vehicle_number, dispatch_date, loads_count, rate_per_load, total_sale_amount, amount_deducted_from_advance, remaining_balance_due, payment_status)
+     VALUES ('DSLE-0001', 'DCUS-001', 'DST-001', 'Tractor', 'TN-37-AZ-1102', '2026-08-12', 3, 1800.00, 5400.00, 5400.00, 0.00, 'Deducted from Advance')`
+  );
+
+  // 10. Seed Sales & Stock Out Dispatches
+  await dbQuery(
+    `INSERT INTO sales_dispatches 
+     (id, customer_name, customer_phone, order_date, warehouse, vehicle_type, vehicle_number, product_id, quantity_units, approx_unit_weight, total_approx_weight, actual_scale_weight, weight_difference, rate_per_kg, total_sales_amount, notes, payment_status)
+     VALUES ('DISP-0001', 'Southern Geo-Fabrics Ltd', '+91 94433 22110', '2026-08-14', 'Main Factory Yard', '10-Wheeler', 'TN-38-BY-8821', 'PRD-001', 100, 35.00, 3500.00, 3620.00, 120.00, 32.00, 115840.00, 'Scale measured moisture gain of +120kg', 'Paid')`
+  );
+  // 11. Seed Operational Expenses
+  await dbQuery(
+    `INSERT INTO expenses (id, expense_date, category, amount, payment_mode, beneficiary_name, notes)
+     VALUES ('EXP-0001', '2026-08-05', 'Driver Salary', 18500.00, 'Bank Transfer', 'Rajan (Factory Driver)', 'Monthly driver wages & trip allowances')`
+  );
+  await dbQuery(
+    `INSERT INTO expenses (id, expense_date, category, amount, payment_mode, beneficiary_name, notes)
+     VALUES ('EXP-0002', '2026-08-08', 'Diesel Expense', 24200.00, 'UPI', 'HP Petrol Bunk Annur', 'Diesel fuel refill for 10-Wheeler & Tipper trucks')`
+  );
+  await dbQuery(
+    `INSERT INTO expenses (id, expense_date, category, amount, payment_mode, beneficiary_name, notes)
+     VALUES ('EXP-0003', '2026-08-10', 'Employee Salary', 45000.00, 'Bank Transfer', 'Factory Labor Staff', 'Weekly shift worker payroll distribution')`
+  );
+  await dbQuery(
+    `INSERT INTO expenses (id, expense_date, category, amount, payment_mode, beneficiary_name, notes)
+     VALUES ('EXP-0004', '2026-08-12', 'Utility & Maintenance', 8400.00, 'UPI', 'TNEB Electricity Board', 'Factory heavy machinery power tariff')`
+  );
+
+  console.log('[SEED] Master vehicles, Coir ERP data, Maintenance records, Employee & Attendance module, Production Supplier Management, Products Directory, Dust Sub-System, Sales Module, and Expenses populated successfully.');
 }
 

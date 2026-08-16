@@ -14,6 +14,10 @@ import salaryRoutes from './modules/employee/routes/salaryRoutes.js';
 import attendanceRoutes from './modules/employee/routes/attendanceRoutes.js';
 import supplyRoutes from './modules/supply/routes/supplyRoutes.js';
 import supplierManagementRoutes from './modules/supplier/routes/supplierManagementRoutes.js';
+import productRoutes from './modules/product/routes/productRoutes.js';
+import dustRoutes from './modules/product/routes/dustRoutes.js';
+import salesRoutes from './modules/sales/routes/salesRoutes.js';
+import dashboardRoutes from './modules/dashboard/routes/dashboardRoutes.js';
 
 dotenv.config();
 
@@ -35,6 +39,10 @@ app.use('/api/salaries', salaryRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/supply', supplyRoutes);
 app.use('/api/supplier-management', supplierManagementRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/dust', dustRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Seed API endpoint
 app.post('/api/seed', async (req, res) => {
@@ -55,11 +63,15 @@ app.get('/api/health', (req, res) => {
 // Initialize Database & Start Server with Error Handling
 initDb().then(async () => {
   console.log('[SERVER] Database Initialized.');
-  const existing = await dbQuery('SELECT COUNT(*) as count FROM positions');
-  const count = parseInt(existing[0]?.count || existing[0]?.['COUNT(*)'] || 0, 10);
-  if (count === 0) {
-    console.log('[SERVER] Database empty. Populating initial seed data...');
-    await seedData();
+  try {
+    const existing = await dbQuery('SELECT COUNT(*) as count FROM positions');
+    const count = parseInt(existing[0]?.count || existing[0]?.['COUNT(*)'] || 0, 10);
+    if (count === 0) {
+      console.log('[SERVER] Database empty. Populating initial seed data...');
+      await seedData();
+    }
+  } catch (e) {
+    console.log('[SERVER] Initial table count check skipped:', e.message);
   }
 
   const server = app.listen(PORT, () => {

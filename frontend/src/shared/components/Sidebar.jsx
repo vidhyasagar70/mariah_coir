@@ -6,6 +6,67 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
   const [isMaintenanceMenuOpen, setIsMaintenanceMenuOpen] = useState(true);
   const [isMiscMenuOpen, setIsMiscMenuOpen] = useState(true);
   const [isSupplyMenuOpen, setIsSupplyMenuOpen] = useState(true);
+  const [isProductMenuOpen, setIsProductMenuOpen] = useState(true);
+  const [isDustMenuOpen, setIsDustMenuOpen] = useState(true);
+  const [isSalesMenuOpen, setIsSalesMenuOpen] = useState(true);
+
+  const productSubNav = [
+    {
+      id: 'product',
+      label: 'Products Registry',
+      code: 'PRD',
+      icon: Package,
+      desc: 'Catalog & Weight Rates'
+    }
+  ];
+
+  const dustSubNav = [
+    {
+      id: 'product_dust_master',
+      label: 'Dust Master & Vehicles',
+      code: 'DST-MSTR',
+      icon: Truck,
+      desc: 'Rates & Vehicle Master'
+    },
+    {
+      id: 'product_dust_customers',
+      label: 'Customers & Advances',
+      code: 'DST-CUST',
+      icon: Users,
+      desc: 'Advances & Delivery Queue'
+    },
+    {
+      id: 'product_dust_sales',
+      label: 'Sales & Dispatches',
+      code: 'DST-SALE',
+      icon: ClipboardList,
+      desc: 'Loads & Advance Deduction'
+    },
+    {
+      id: 'product_dust_reports',
+      label: 'Dust Reports & Ledger',
+      code: 'DST-RPT',
+      icon: FileText,
+      desc: 'Advances & Dues Statement'
+    }
+  ];
+
+  const salesSubNav = [
+    {
+      id: 'sales_stock_out',
+      label: 'Stock Out & Dispatch',
+      code: 'SLS-OUT',
+      icon: Truck,
+      desc: 'Deliveries & Scale Weight'
+    },
+    {
+      id: 'sales_reports',
+      label: 'Sales Reports',
+      code: 'SLS-RPT',
+      icon: FileText,
+      desc: 'Revenue & Weight Variance'
+    }
+  ];
 
   const supplySubNav = [
     {
@@ -79,8 +140,203 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
       {/* Main Navigation Groups */}
       <div className="space-y-4 flex-1 overflow-y-auto pr-0.5">
-        {/* Parent Category 1: SUPPLY MANAGEMENT */}
+        {/* TOP LEVEL: EXECUTIVE DASHBOARD */}
         <div className="space-y-1">
+          <button
+            onClick={() => handleSelectTab('dashboard')}
+            className={`w-full flex items-center justify-between p-2 rounded-xl transition-all duration-150 cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-[#965E36] text-white font-semibold shadow-xs border border-[#7A4A28]'
+                : 'text-[#5C3B21] hover:text-[#2E1A0C] hover:bg-[#E2D2C2] border border-transparent'
+            }`}
+          >
+            <div className="flex items-center space-x-2.5 text-left min-w-0">
+              <div
+                className={`p-1.5 rounded-lg shrink-0 ${
+                  activeTab === 'dashboard' ? 'bg-[#7A4A28] text-white' : 'bg-[#E2D2C2] text-[#6B4426]'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1">
+                  <span className={`text-[9px] font-mono font-bold ${activeTab === 'dashboard' ? 'text-[#F5EBE6]' : 'text-[#7C5A3E]'}`}>DASH</span>
+                  <span className="text-xs font-medium truncate">Analytics Dashboard</span>
+                </div>
+                <p className={`text-[10px] truncate max-w-[115px] ${activeTab === 'dashboard' ? 'text-[#EBE0D8]' : 'text-[#8C694E]'}`}>Executive Financial Overview</p>
+              </div>
+            </div>
+            {activeTab === 'dashboard' && <ChevronRight className="h-3 w-3 text-white shrink-0 ml-1" />}
+          </button>
+        </div>
+
+        {/* Parent Category: PRODUCT MANAGEMENT */}
+        <div className="space-y-1 pt-1 border-t border-[#D6C4B0]/60">
+          <button
+            onClick={() => setIsProductMenuOpen(!isProductMenuOpen)}
+            className="w-full flex items-center justify-between px-1.5 py-1 text-[#7C5A3E] hover:text-[#2E1A0C] transition-colors cursor-pointer"
+          >
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#7C5A3E]">
+              <span>Product Management</span>
+            </div>
+            {isProductMenuOpen ? (
+              <ChevronDown className="h-3 w-3 text-[#7C5A3E]" />
+            ) : (
+              <ChevronRight className="h-3 w-3 text-[#7C5A3E]" />
+            )}
+          </button>
+
+          {isProductMenuOpen && (
+            <div className="space-y-1 pl-0.5">
+              {productSubNav.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectTab(item.id)}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? 'bg-[#965E36] text-white font-semibold shadow-xs border border-[#7A4A28]'
+                        : 'text-[#5C3B21] hover:text-[#2E1A0C] hover:bg-[#E2D2C2] border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5 text-left min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg shrink-0 ${
+                          isActive ? 'bg-[#7A4A28] text-white' : 'bg-[#E2D2C2] text-[#6B4426]'
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-1">
+                          <span className={`text-[9px] font-mono font-bold ${isActive ? 'text-[#F5EBE6]' : 'text-[#7C5A3E]'}`}>{item.code}</span>
+                          <span className="text-xs font-medium truncate">{item.label}</span>
+                        </div>
+                        <p className={`text-[10px] truncate max-w-[115px] ${isActive ? 'text-[#EBE0D8]' : 'text-[#8C694E]'}`}>{item.desc}</p>
+                      </div>
+                    </div>
+                    {isActive && <ChevronRight className="h-3 w-3 text-white shrink-0 ml-1" />}
+                  </button>
+                );
+              })}
+
+              {/* DUST MANAGEMENT SUB-ACCORDION */}
+              <div className="space-y-1 pt-1.5 border-t border-[#D6C4B0]/60">
+                <button
+                  onClick={() => setIsDustMenuOpen(!isDustMenuOpen)}
+                  className="w-full flex items-center justify-between px-2 py-1 text-[#7C5A3E] hover:text-[#2E1A0C] transition-colors cursor-pointer text-left"
+                >
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#7C5A3E] flex items-center space-x-1">
+                    <span>🌾 Dust Management</span>
+                  </span>
+                  {isDustMenuOpen ? (
+                    <ChevronDown className="h-3 w-3 text-[#7C5A3E]" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3 text-[#7C5A3E]" />
+                  )}
+                </button>
+
+                {isDustMenuOpen && (
+                  <div className="space-y-1 pl-1">
+                    {dustSubNav.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSelectTab(item.id)}
+                          className={`w-full flex items-center justify-between p-2 rounded-xl transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? 'bg-[#965E36] text-white font-semibold shadow-xs border border-[#7A4A28]'
+                              : 'text-[#5C3B21] hover:text-[#2E1A0C] hover:bg-[#E2D2C2] border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2 text-left min-w-0">
+                            <div
+                              className={`p-1.5 rounded-lg shrink-0 ${
+                                isActive ? 'bg-[#7A4A28] text-white' : 'bg-[#E2D2C2] text-[#6B4426]'
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center space-x-1">
+                                <span className={`text-[8.5px] font-mono font-bold ${isActive ? 'text-[#F5EBE6]' : 'text-[#7C5A3E]'}`}>{item.code}</span>
+                                <span className="text-xs font-medium truncate">{item.label}</span>
+                              </div>
+                              <p className={`text-[10px] truncate max-w-[110px] ${isActive ? 'text-[#EBE0D8]' : 'text-[#8C694E]'}`}>{item.desc}</p>
+                            </div>
+                          </div>
+                          {isActive && <ChevronRight className="h-3 w-3 text-white shrink-0 ml-1" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Parent Category: SALES MODULE */}
+        <div className="space-y-1 pt-1 border-t border-[#D6C4B0]/60">
+          <button
+            onClick={() => setIsSalesMenuOpen(!isSalesMenuOpen)}
+            className="w-full flex items-center justify-between px-1.5 py-1 text-[#7C5A3E] hover:text-[#2E1A0C] transition-colors cursor-pointer"
+          >
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#7C5A3E]">
+              <span>🛒 Sales Module</span>
+            </div>
+            {isSalesMenuOpen ? (
+              <ChevronDown className="h-3 w-3 text-[#7C5A3E]" />
+            ) : (
+              <ChevronRight className="h-3 w-3 text-[#7C5A3E]" />
+            )}
+          </button>
+
+          {isSalesMenuOpen && (
+            <div className="space-y-1 pl-0.5">
+              {salesSubNav.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectTab(item.id)}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? 'bg-[#965E36] text-white font-semibold shadow-xs border border-[#7A4A28]'
+                        : 'text-[#5C3B21] hover:text-[#2E1A0C] hover:bg-[#E2D2C2] border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5 text-left min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg shrink-0 ${
+                          isActive ? 'bg-[#7A4A28] text-white' : 'bg-[#E2D2C2] text-[#6B4426]'
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-1">
+                          <span className={`text-[9px] font-mono font-bold ${isActive ? 'text-[#F5EBE6]' : 'text-[#7C5A3E]'}`}>{item.code}</span>
+                          <span className="text-xs font-medium truncate">{item.label}</span>
+                        </div>
+                        <p className={`text-[10px] truncate max-w-[115px] ${isActive ? 'text-[#EBE0D8]' : 'text-[#8C694E]'}`}>{item.desc}</p>
+                      </div>
+                    </div>
+                    {isActive && <ChevronRight className="h-3 w-3 text-white shrink-0 ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Parent Category 1: SUPPLY MANAGEMENT */}
+        <div className="space-y-1 pt-1 border-t border-[#D6C4B0]/60">
           <button
             onClick={() => setIsSupplyMenuOpen(!isSupplyMenuOpen)}
             className="w-full flex items-center justify-between px-1.5 py-1 text-[#7C5A3E] hover:text-[#2E1A0C] transition-colors cursor-pointer"

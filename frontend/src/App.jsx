@@ -7,10 +7,22 @@ import MiscellaneousRecords from './modules/miscellaneous/pages/MiscellaneousRec
 import MiscellaneousEntry from './modules/miscellaneous/pages/MiscellaneousEntry';
 import EmployeeLanding from './modules/employee/pages/EmployeeLanding';
 import SupplyLanding from './modules/supply/pages/SupplyLanding';
+import ProductLanding from './modules/product/pages/ProductLanding';
+import DustMasterLanding from './modules/product/pages/dust/DustMasterLanding';
+import DustCustomersLanding from './modules/product/pages/dust/DustCustomersLanding';
+import DustSalesLanding from './modules/product/pages/dust/DustSalesLanding';
+import DustReportLanding from './modules/product/pages/dust/DustReportLanding';
+import SalesStockOutLanding from './modules/sales/pages/SalesStockOutLanding';
+import SalesReportLanding from './modules/sales/pages/SalesReportLanding';
+import DashboardLanding from './modules/dashboard/pages/DashboardLanding';
 
 export default function App() {
   const getTabFromHash = () => {
     let rawHash = window.location.hash.replace(/^#\/?/, '').trim();
+
+    if (!rawHash || rawHash === 'dashboard') {
+      return 'dashboard';
+    }
 
     if (rawHash === 'miscellaneous/new' || rawHash === 'miscellaneous_new') {
       return 'miscellaneous_new';
@@ -33,11 +45,43 @@ export default function App() {
       return rawHash;
     }
 
+    if (rawHash === 'sales/stock-out' || rawHash === 'sales_stock_out') {
+      return 'sales_stock_out';
+    }
+
+    if (rawHash === 'sales/reports' || rawHash === 'sales_reports') {
+      return 'sales_reports';
+    }
+
+    if (rawHash.startsWith('sales')) {
+      return 'sales_stock_out';
+    }
+
+    if (rawHash === 'products/dust/master' || rawHash === 'product_dust_master') {
+      return 'product_dust_master';
+    }
+
+    if (rawHash === 'products/dust/customers' || rawHash === 'product_dust_customers') {
+      return 'product_dust_customers';
+    }
+
+    if (rawHash === 'products/dust/sales' || rawHash === 'product_dust_sales') {
+      return 'product_dust_sales';
+    }
+
+    if (rawHash === 'products/dust/reports' || rawHash === 'product_dust_reports') {
+      return 'product_dust_reports';
+    }
+
+    if (rawHash.startsWith('product')) {
+      return 'product';
+    }
+
     // Strip trailing or leading slashes
     const normalized = rawHash.replace(/^\/+|\/+$/g, '');
 
-    const validTabs = ['mm01', 'mm02', 'miscellaneous', 'miscellaneous_new', 'employee', 'supply'];
-    const resolvedTab = validTabs.includes(normalized) ? normalized : 'employee';
+    const validTabs = ['dashboard', 'product', 'product_dust_master', 'product_dust_customers', 'product_dust_sales', 'product_dust_reports', 'sales_stock_out', 'sales_reports', 'mm01', 'mm02', 'miscellaneous', 'miscellaneous_new', 'employee', 'supply'];
+    const resolvedTab = validTabs.includes(normalized) ? normalized : 'dashboard';
     
     return resolvedTab;
   };
@@ -110,11 +154,73 @@ export default function App() {
           addActionLabel: null,
           onAdd: null
         };
+      case 'product':
+        return {
+          title: 'Products Registry & Catalog',
+          subtitle: 'Manage Coir manufacturing finished products, unit weights & sell rates',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'product_dust_master':
+        return {
+          title: 'Dust Master & Vehicles',
+          subtitle: 'Configure coir pith dust types, vehicle categories, and fixed load rates',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'product_dust_customers':
+        return {
+          title: 'Dust Customers & Advances',
+          subtitle: 'Register dust customers, advance payments collected & delivery queues',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'product_dust_sales':
+        return {
+          title: 'Dust Sales & Dispatches',
+          subtitle: 'Log dispatched dust loads, auto-deduct advance balances & track due amounts',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'dashboard':
+        return {
+          title: 'Executive Analytics & Net Profitability Engine',
+          subtitle: 'Real-time financial reconciliation of sales revenues, husk procurement, and operating cost outflows',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'product_dust_reports':
+        return {
+          title: 'Dust Customer Advance & Outstanding Report',
+          subtitle: 'Track advance balances held, dispatches, and outstanding customer dues',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'sales_stock_out':
+        return {
+          title: 'Sales & Stock Out Dispatches',
+          subtitle: 'Log outbound product deliveries, actual scale weights & moisture weight variance',
+          addActionLabel: null,
+          onAdd: null
+        };
+      case 'sales_reports':
+        return {
+          title: 'Sales Revenue & Weight Variance Reports',
+          subtitle: 'Analyze customer dispatch volumes, product sales, and net moisture weight variance',
+          addActionLabel: null,
+          onAdd: null
+        };
       case 'supply':
-      default:
         return {
           title: 'Supply Management Module',
           subtitle: 'Manage suppliers, raw materials, pricing, accounts & supply entries',
+          addActionLabel: null,
+          onAdd: null
+        };
+      default:
+        return {
+          title: 'Coir Manufacturing ERP',
+          subtitle: '',
           addActionLabel: null,
           onAdd: null
         };
@@ -147,6 +253,14 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-[#FAF7F2]" key={refreshKey}>
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            {activeTab === 'dashboard' && <DashboardLanding search={search} />}
+            {activeTab === 'product' && <ProductLanding search={search} />}
+            {activeTab === 'product_dust_master' && <DustMasterLanding search={search} />}
+            {activeTab === 'product_dust_customers' && <DustCustomersLanding search={search} />}
+            {activeTab === 'product_dust_sales' && <DustSalesLanding search={search} />}
+            {activeTab === 'product_dust_reports' && <DustReportLanding search={search} />}
+            {activeTab === 'sales_stock_out' && <SalesStockOutLanding search={search} />}
+            {activeTab === 'sales_reports' && <SalesReportLanding search={search} />}
             {activeTab === 'mm01' && <MM01_MaintenanceForm />}
             {activeTab === 'mm02' && <MM02_MaintenanceRecords search={search} />}
             {activeTab === 'miscellaneous' && (
