@@ -30,11 +30,14 @@ export async function getDashboardAnalytics(req, res) {
       }
     }
 
-    // Build date clauses
+    // Build date clauses for each module's table
     let salesDateClause = '';
     let dustDateClause = '';
     let receiptDateClause = '';
+    let supplyDateClause = '';
     let expenseDateClause = '';
+    let maintenanceDateClause = '';
+    let miscDateClause = '';
     const dateParams = [];
 
     if (date_from) {
@@ -43,7 +46,10 @@ export async function getDashboardAnalytics(req, res) {
       salesDateClause += ` AND order_date >= $${pIdx}`;
       dustDateClause += ` AND dispatch_date >= $${pIdx}`;
       receiptDateClause += ` AND receipt_date >= $${pIdx}`;
+      supplyDateClause += ` AND (entry_date >= $${pIdx} OR date >= $${pIdx})`;
       expenseDateClause += ` AND expense_date >= $${pIdx}`;
+      maintenanceDateClause += ` AND (maintenance_date >= $${pIdx} OR payment_date >= $${pIdx})`;
+      miscDateClause += ` AND expense_date >= $${pIdx}`;
     }
 
     if (date_to) {
@@ -52,7 +58,10 @@ export async function getDashboardAnalytics(req, res) {
       salesDateClause += ` AND order_date <= $${pIdx}`;
       dustDateClause += ` AND dispatch_date <= $${pIdx}`;
       receiptDateClause += ` AND receipt_date <= $${pIdx}`;
+      supplyDateClause += ` AND (entry_date <= $${pIdx} OR date <= $${pIdx})`;
       expenseDateClause += ` AND expense_date <= $${pIdx}`;
+      maintenanceDateClause += ` AND (maintenance_date <= $${pIdx} OR payment_date <= $${pIdx})`;
+      miscDateClause += ` AND expense_date <= $${pIdx}`;
     }
 
     // 1. REVENUE STREAMS
@@ -71,12 +80,23 @@ export async function getDashboardAnalytics(req, res) {
     const totalGrossRevenue = productSalesRevenue + dustSalesRevenue;
 
     // 2. OPERATIONAL COST OUTFLOWS
-    // Raw Material Husks Cost (from Receipts / Supply Entries)
-    const rawMaterialRows = await dbQuery(
-      `SELECT COALESCE(SUM(total_amount), 0) as total FROM receipts WHERE 1=1 ${receiptDateClause}`,
-      dateParams
-    );
-    const rawMaterialCost = parseFloat(rawMaterialRows[0]?.total || 0);
+    // Raw Material Husks Procurement Cost (from supply_entries and receipts)
+    let rawMaterialCost = 0;
+    try {
+      const supplyRows = await dbQuery(
+        `SELECT COALESCE(SUM(total_amount), 0) as total FROM supply_entries WHERE deleted_at IS NULL ${supplyDateClause}`,
+        dateParams
+      );
+      rawMaterialCost += parseFloat(supplyRows[0]?.total || 0);
+    } catch (e) {}
+
+    try {
+      const receiptRows = await dbQuery(
+        `SELECT COALESCE(SUM(total_amount), 0) as total FROM receipts WHERE 1=1 ${receiptDateClause}`,
+        dateParams
+      );
+      rawMaterialCost += parseFloat(receiptRows[0]?.total || 0);
+    } catch (e) {}
 
     // Expenses categorized in expenses table
     const expenseCategoryRows = await dbQuery(
@@ -100,9 +120,30 @@ export async function getDashboardAnalytics(req, res) {
       else miscExpense += amt;
     });
 
-    // Also include maintenance & misc records table if present
+    // Add Maintenance Register logs
     try {
-      const miscRecRows = await dbQuery(`SELECT COALESCE(SUM(amount), 0) as total FROM miscellaneous_records`);
+      const maintRows = await dbQuery(
+        `SELECT COALESCE(SUM(amount_spent), 0) as total FROM maintenance_register WHERE 1=1 ${maintenanceDateClause}`,
+        dateParams
+      );
+      miscExpense += parseFloat(maintRows[0]?.total || 0);
+    } catch (e) {}
+
+    // Add Miscellaneous Entries logs
+    try {
+      const miscEntriesRows = await dbQuery(
+        `SELECT COALESCE(SUM(amount), 0) as total FROM miscellaneous_entries WHERE deleted_at IS NULL ${miscDateClause}`,
+        dateParams
+      );
+      miscExpense += parseFloat(miscEntriesRows[0]?.total || 0);
+    } catch (e) {}
+
+    // Add legacy miscellaneous_records if present
+    try {
+      const miscRecRows = await dbQuery(
+        `SELECT COALESCE(SUM(amount), 0) as total FROM miscellaneous_records WHERE 1=1 ${miscDateClause}`,
+        dateParams
+      );
       miscExpense += parseFloat(miscRecRows[0]?.total || 0);
     } catch (e) {}
 

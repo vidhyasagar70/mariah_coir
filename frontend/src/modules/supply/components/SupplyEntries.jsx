@@ -59,12 +59,30 @@ export default function SupplyEntries() {
   useEffect(() => { fetchMasters(); }, []);
   useEffect(() => { fetchData(); }, [search, filterSupplier, filterMaterial, fromDate, toDate]);
 
-  // Load vehicles for selected supplier
+  // Load vehicles for selected supplier & auto-select best default
   useEffect(() => {
     if (form.supplier_id) {
       fetch(`${API}/vehicles?supplier_id=${form.supplier_id}`)
         .then(r => r.json())
-        .then(j => setVehicles(j.data || []))
+        .then(j => {
+          const list = j.data || [];
+          setVehicles(list);
+          if (list.length > 0) {
+            const first = list[0];
+            setForm(prev => ({
+              ...prev,
+              vehicle_id: first.id,
+              vehicle_type_id: first.vehicle_type_id || 'CUSTOM',
+              custom_vehicle_number: first.vehicle_number || ''
+            }));
+          } else {
+            setForm(prev => ({
+              ...prev,
+              vehicle_id: '',
+              vehicle_type_id: 'CUSTOM'
+            }));
+          }
+        })
         .catch(() => setVehicles([]));
     } else {
       setVehicles([]);
@@ -90,24 +108,32 @@ export default function SupplyEntries() {
   }, [form.raw_material_id, form.vehicle_type_id, form.entry_date]);
 
   const handleSave = async () => {
-    if (!form.supplier_id || !form.raw_material_id || !form.vehicle_type_id || !form.entry_date) {
-      alert('Please fill all required fields (*).');
+    if (!form.supplier_id) {
+      alert('Please select a Supplier.');
+      return;
+    }
+    if (!form.raw_material_id) {
+      alert('Please select a Material Type.');
+      return;
+    }
+    if (!form.vehicle_type_id) {
+      alert('Please select a Vehicle / Transport option.');
+      return;
+    }
+    if (!form.entry_date) {
+      alert('Please select a Receipt Date.');
       return;
     }
 
+    let customName = form.custom_vehicle_name;
     if (form.vehicle_type_id === 'CUSTOM') {
-      if (!form.custom_vehicle_name || !form.custom_vehicle_name.trim()) {
-        alert('Please enter the custom vehicle name.');
-        return;
-      }
-      if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) {
-        alert('Please enter a valid rate per trip for the custom truck.');
-        return;
+      if (!customName || !customName.trim()) {
+        customName = 'Custom Vehicle';
       }
     }
 
     if (!form.rate_per_unit || parseFloat(form.rate_per_unit) <= 0) {
-      alert('Please enter a valid rate per trip.');
+      alert('Please enter a valid Rate Per Trip (₹).');
       return;
     }
 
@@ -115,6 +141,7 @@ export default function SupplyEntries() {
     try {
       const payload = {
         ...form,
+        custom_vehicle_name: customName,
         custom_vehicle_rate: form.rate_per_unit
       };
       const res = await fetch(`${API}/entries`, {
@@ -133,7 +160,7 @@ export default function SupplyEntries() {
         });
         setResolvedRate(null);
         fetchData();
-        fetchMasters(); // Refresh vehicle types
+        fetchMasters();
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to record goods inward receipt.');
@@ -188,50 +215,94 @@ export default function SupplyEntries() {
             </div>
           </div>
 
-          {/* Row 1: Supplier, Material Type, Date */}
+          {/* Row 1: Supplier, Assigned / Custom Vehicle, Material Type */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Select Supplier *</label>
-              <select value={form.supplier_id} onChange={e => setForm({...form, supplier_id: e.target.value, vehicle_id: ''})}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium">
+              <select value={form.supplier_id} onChange={e => setForm({...form, supplier_id: e.target.value, vehicle_id: '', vehicle_type_id: '', custom_vehicle_name: '', custom_vehicle_number: ''})}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
                 <option value="">Select Supplier</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_code} – {s.name}</option>)}
               </select>
             </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">
+                Vehicle / Fleet * {form.supplier_id && vehicles.length > 0 ? `(${vehicles.length} assigned)` : ''}
+              </label>
+              <select 
+                value={form.vehicle_type_id === 'CUSTOM' ? 'CUSTOM' : form.vehicle_id} 
+                disabled={!form.supplier_id}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'CUSTOM') {
+                    const initialRate = form.custom_vehicle_rate || form.rate_per_unit || '';
+                    setForm(prev => ({
+                      ...prev,
+                      vehicle_id: '',
+                      vehicle_type_id: 'CUSTOM',
+                      custom_vehicle_name: prev.custom_vehicle_name || '',
+                      custom_vehicle_number: prev.custom_vehicle_number || '',
+                      rate_per_unit: initialRate
+                    }));
+                    setResolvedRate(initialRate ? parseFloat(initialRate) : null);
+                  } else {
+                    const vObj = vehicles.find(v => v.id === val);
+                    if (vObj) {
+                      setForm(prev => ({
+                        ...prev,
+                        vehicle_id: val,
+                        vehicle_type_id: vObj.vehicle_type_id || '',
+                        custom_vehicle_name: '',
+                        custom_vehicle_number: vObj.vehicle_number || ''
+                      }));
+                    } else {
+                      setForm(prev => ({
+                        ...prev,
+                        vehicle_id: '',
+                        vehicle_type_id: '',
+                        custom_vehicle_name: '',
+                        custom_vehicle_number: ''
+                      }));
+                      setResolvedRate(null);
+                    }
+                  }
+                }}
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] outline-none font-semibold transition ${
+                  !form.supplier_id ? 'bg-[#EFE6DC] text-[#7C5A3E] cursor-not-allowed' : 'bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36]'
+                }`}>
+                {!form.supplier_id ? (
+                  <option value="">← Select Supplier first</option>
+                ) : (
+                  <>
+                    <option value="">Select Assigned / Custom Vehicle</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>
+                        🚚 {v.vehicle_number || 'Vehicle'} – {v.vehicle_type_name || 'Assigned'}
+                      </option>
+                    ))}
+                    <option value="CUSTOM">🚛 + Custom / Unregistered Vehicle</option>
+                  </>
+                )}
+              </select>
+            </div>
+
             <div>
               <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Material Type *</label>
               <select value={form.raw_material_id} onChange={e => setForm({...form, raw_material_id: e.target.value})}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium">
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
                 <option value="">Select Material</option>
                 {rawMaterials.map(rm => <option key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Row 2: Receipt Date, Trip Count, Rate Per Trip */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Receipt Date *</label>
               <input type="date" value={form.entry_date} onChange={e => setForm({...form, entry_date: e.target.value})}
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium" />
-            </div>
-          </div>
-
-          {/* Row 2: Vehicle Type, Trip Count, Rate Per Trip */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-[11px] font-bold text-[#5C3B21] block mb-1.5">Vehicle Type *</label>
-              <select value={form.vehicle_type_id} onChange={e => {
-                const val = e.target.value;
-                if (val === 'CUSTOM') {
-                  const initialRate = form.custom_vehicle_rate || form.rate_per_unit || '';
-                  setForm(prev => ({ ...prev, vehicle_type_id: val, rate_per_unit: initialRate }));
-                  setResolvedRate(initialRate ? parseFloat(initialRate) : null);
-                } else {
-                  setForm(prev => ({ ...prev, vehicle_type_id: val }));
-                }
-              }}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-semibold">
-                <option value="">Select Vehicle Type</option>
-                {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}{vt.capacity ? ` (${vt.capacity})` : ''}</option>)}
-                <option value="CUSTOM">🚛 Custom Truck (Manual Rate Entry)</option>
-              </select>
             </div>
 
             <div>
@@ -264,23 +335,23 @@ export default function SupplyEntries() {
             </div>
           </div>
 
-          {/* Inline Custom Truck Name & Reg No */}
+          {/* Inline Custom Unregistered Vehicle Inputs */}
           {form.vehicle_type_id === 'CUSTOM' && (
             <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#D6C4B0] space-y-3">
               <div className="flex items-center space-x-2 text-xs font-bold text-[#965E36]">
                 <Truck className="h-4 w-4" />
-                <span>Custom Truck Information</span>
+                <span>Custom / Unregistered Vehicle Details</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Truck / Vehicle Name *</label>
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Custom Vehicle / Truck Name *</label>
                   <input value={form.custom_vehicle_name || ''} onChange={e => setForm({...form, custom_vehicle_name: e.target.value})} placeholder="e.g. Local Eicher 14-ft / Unregistered Tipper"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium" />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Vehicle Registration No (Optional)</label>
                   <input value={form.custom_vehicle_number || ''} onChange={e => setForm({...form, custom_vehicle_number: e.target.value})} placeholder="e.g. TN 38 B 9912 / Weighbridge Slip #4410"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none font-medium" />
                 </div>
               </div>
             </div>
@@ -390,7 +461,9 @@ export default function SupplyEntries() {
                     <td className="py-3 px-4 font-medium text-[#7C5A3E]">{row.entry_date || row.date}</td>
                     <td className="py-3 px-4 font-semibold text-[#2E1A0C]">{row.supplier_name}</td>
                     <td className="py-3 px-4 font-medium text-[#5C3B21]">{row.raw_material_name}</td>
-                    <td className="py-3 px-4 font-medium text-[#7C5A3E]">{row.vehicle_type_name || 'Custom Vehicle'}</td>
+                    <td className="py-3 px-4 font-medium text-[#7C5A3E]">
+                      {row.vehicle_number ? `${row.vehicle_number} (${row.vehicle_type_name || 'Fleet'})` : (row.vehicle_type_name || 'Custom Vehicle')}
+                    </td>
                     <td className="py-3 px-4 text-center font-bold text-blue-700">{row.quantity}</td>
                     <td className="py-3 px-4 text-right font-medium text-[#5C3B21]">₹ {fmt(row.rate_per_unit || row.price)}</td>
                     <td className="py-3 px-4 text-right font-extrabold text-[#965E36]">₹ {fmt(row.total_amount)}</td>

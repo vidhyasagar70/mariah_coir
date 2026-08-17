@@ -66,17 +66,21 @@ export default function AccountManagement() {
   const openTransaction = (account, type) => {
     setSelectedAccount(account);
     setTransactionType(type);
-    setTxForm({ amount: '', transaction_date: new Date().toISOString().split('T')[0], description: '' });
+    setTxForm({ amount: '', transaction_date: new Date().toISOString().split('T')[0], description: '', reference_no: '', custom_reference_no: '' });
     setShowTransactionModal(true);
   };
 
   const handleTransaction = async () => {
     if (!txForm.amount || parseFloat(txForm.amount) <= 0) return;
     const endpoint = transactionType === 'advance' ? 'advance' : 'payment';
+    const payload = {
+      ...txForm,
+      reference_no: txForm.custom_reference_no || txForm.reference_no
+    };
     await fetch(`${API}/accounts/${selectedAccount.id}/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(txForm)
+      body: JSON.stringify(payload)
     });
     setShowTransactionModal(false);
     fetchAccounts();

@@ -699,20 +699,30 @@ export async function initDb() {
 
     try {
       const supInfo = await allSqlite(`PRAGMA table_info(suppliers)`);
-      if (supInfo.length > 0 && !supInfo.some(c => c.name === 'supplier_number')) {
-        await runSqlite(`DROP TABLE suppliers;`);
+      if (supInfo.length > 0) {
+        if (!supInfo.some(c => c.name === 'name')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN name TEXT;`);
+        if (!supInfo.some(c => c.name === 'phone')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN phone TEXT;`);
+        if (!supInfo.some(c => c.name === 'contact_number')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN contact_number TEXT;`);
+        if (!supInfo.some(c => c.name === 'category')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN category TEXT DEFAULT 'Raw Material';`);
+        if (!supInfo.some(c => c.name === 'custom_notes')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN custom_notes TEXT;`);
+        if (!supInfo.some(c => c.name === 'supplier_code')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN supplier_code TEXT;`);
       }
-    } catch (e) {}
+    } catch (e) { console.error('Error altering suppliers table:', e); }
 
     await runSqlite(`
       CREATE TABLE IF NOT EXISTS suppliers (
           id TEXT PRIMARY KEY,
-          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
-          supplier_number TEXT NOT NULL,
-          supplier_name TEXT NOT NULL,
+          supplier_code TEXT,
+          supplier_number TEXT,
+          supplier_name TEXT,
+          name TEXT,
           company_name TEXT,
-          phone_number TEXT NOT NULL,
-          contact_person TEXT NOT NULL,
+          phone_number TEXT,
+          phone TEXT,
+          contact_number TEXT,
+          contact_person TEXT,
+          category TEXT DEFAULT 'Raw Material',
+          custom_notes TEXT,
           status TEXT NOT NULL DEFAULT 'Active',
           created_at TEXT DEFAULT (datetime('now')),
           updated_at TEXT DEFAULT (datetime('now')),
@@ -1090,6 +1100,45 @@ export async function initDb() {
       );
     `);
 
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS maintenance_register (
+          id TEXT PRIMARY KEY,
+          maintenance_date TEXT NOT NULL DEFAULT (date('now')),
+          payment_date TEXT DEFAULT (date('now')),
+          maintenance_name TEXT NOT NULL,
+          maintenance_reason TEXT,
+          amount_spent REAL NOT NULL DEFAULT 0.00,
+          days_taken INTEGER NOT NULL DEFAULT 1,
+          pay_mode TEXT NOT NULL DEFAULT 'Cash',
+          receiver_name TEXT,
+          account_number TEXT,
+          status TEXT NOT NULL DEFAULT 'PAID',
+          created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    await runSqlite(`
+      CREATE TABLE IF NOT EXISTS miscellaneous_entries (
+          id TEXT PRIMARY KEY,
+          company_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+          description TEXT,
+          expense_date TEXT,
+          amount REAL DEFAULT 0.00,
+          payment_mode TEXT DEFAULT 'ONLINE',
+          account_number TEXT,
+          bank_name TEXT,
+          transaction_reference TEXT,
+          payment_reference TEXT,
+          notes TEXT,
+          status TEXT DEFAULT 'PAID',
+          created_by TEXT DEFAULT '11111111-1111-1111-1111-111111111111',
+          updated_by TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          deleted_at TEXT DEFAULT NULL
+      );
+    `);
+
     console.log('[DB] SQLite schema initialized.');
   }
 }
@@ -1125,10 +1174,16 @@ export async function getNextId(prefix) {
     if (prefix === 'DISP') { table = 'sales_dispatches'; padLen = 4; }
     if (prefix === 'EXP') { table = 'expenses'; padLen = 4; }
 
-    const row = await getSqlite(`SELECT id FROM ${table} ORDER BY created_at DESC, id DESC LIMIT 1`);
+    let row;
+    if (prefix === 'SE') {
+      row = await getSqlite(`SELECT entry_code as id, supply_number FROM supply_entries ORDER BY created_at DESC, rowid DESC LIMIT 1`);
+    } else {
+      row = await getSqlite(`SELECT id FROM ${table} ORDER BY created_at DESC, id DESC LIMIT 1`);
+    }
     let nextNum = 1;
-    if (row && row.id && row.id.startsWith(prefix + '-')) {
-      const numPart = parseInt(row.id.split('-')[1], 10);
+    const codeVal = row ? (row.id || row.supply_number) : null;
+    if (codeVal && codeVal.startsWith(prefix + '-')) {
+      const numPart = parseInt(codeVal.split('-')[1], 10);
       if (!isNaN(numPart)) nextNum = numPart + 1;
     }
     return `${prefix}-${String(nextNum).padStart(padLen, '0')}`;

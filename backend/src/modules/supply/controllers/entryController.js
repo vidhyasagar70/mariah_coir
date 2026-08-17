@@ -6,12 +6,13 @@ export async function getEntries(req, res) {
     const { supplier_id, raw_material_id, vehicle_type_id, status, from_date, to_date, search } = req.query;
     let query = `
       SELECT se.*,
-             ss.name as supplier_name, ss.supplier_code,
+             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
+             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
              rm.name as raw_material_name,
              svt.name as vehicle_type_name,
              sv.vehicle_number
       FROM supply_entries se
-      LEFT JOIN supply_suppliers ss ON se.supplier_id = ss.id
+      LEFT JOIN suppliers ss ON se.supplier_id = ss.id
       LEFT JOIN raw_materials rm ON se.raw_material_id = rm.id
       LEFT JOIN supply_vehicle_types svt ON se.vehicle_type_id = svt.id
       LEFT JOIN supply_vehicles sv ON se.vehicle_id = sv.id
@@ -171,10 +172,12 @@ export async function createEntry(req, res) {
 
     // Return created entry with join data
     const created = await dbQuery(`
-      SELECT se.*, ss.name as supplier_name, ss.supplier_code,
+      SELECT se.*, 
+             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
+             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
              rm.name as raw_material_name, svt.name as vehicle_type_name, sv.vehicle_number
       FROM supply_entries se
-      LEFT JOIN supply_suppliers ss ON se.supplier_id = ss.id
+      LEFT JOIN suppliers ss ON se.supplier_id = ss.id
       LEFT JOIN raw_materials rm ON se.raw_material_id = rm.id
       LEFT JOIN supply_vehicle_types svt ON se.vehicle_type_id = svt.id
       LEFT JOIN supply_vehicles sv ON se.vehicle_id = sv.id
@@ -230,14 +233,15 @@ export async function getEntryReports(req, res) {
 
     // Summary by supplier
     const bySupplier = await dbQuery(`
-      SELECT ss.name as supplier_name, ss.supplier_code,
+      SELECT COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
+             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
              COUNT(se.id) as total_entries,
              SUM(se.quantity) as total_quantity,
              SUM(se.total_amount) as total_amount
       FROM supply_entries se
-      LEFT JOIN supply_suppliers ss ON se.supplier_id = ss.id
-      WHERE se.deleted_at IS NULL AND se.status = 'Confirmed' ${dateFilter}
-      GROUP BY ss.name, ss.supplier_code
+      LEFT JOIN suppliers ss ON se.supplier_id = ss.id
+      WHERE se.deleted_at IS NULL AND (se.status = 'Confirmed' OR se.status = 'Pending') ${dateFilter}
+      GROUP BY COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier'), COALESCE(ss.supplier_code, ss.supplier_number, ss.id)
       ORDER BY total_amount DESC
     `, params);
 

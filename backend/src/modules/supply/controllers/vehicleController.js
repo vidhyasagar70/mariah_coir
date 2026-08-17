@@ -6,10 +6,11 @@ export async function getVehicles(req, res) {
     const { supplier_id, vehicle_type_id, search } = req.query;
     let query = `
       SELECT sv.*, 
-             ss.name as supplier_name, ss.supplier_code,
+             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name,
+             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
              svt.name as vehicle_type_name
       FROM supply_vehicles sv
-      LEFT JOIN supply_suppliers ss ON sv.supplier_id = ss.id
+      LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
       LEFT JOIN supply_vehicle_types svt ON sv.vehicle_type_id = svt.id
       WHERE sv.deleted_at IS NULL`;
     const params = [];
@@ -26,10 +27,10 @@ export async function getVehicles(req, res) {
 
     if (search) {
       params.push(`%${search}%`);
-      query += ` AND (sv.vehicle_number LIKE $${params.length} OR ss.name LIKE $${params.length} OR svt.name LIKE $${params.length})`;
+      query += ` AND (sv.vehicle_number LIKE $${params.length} OR ss.name LIKE $${params.length} OR ss.supplier_name LIKE $${params.length} OR svt.name LIKE $${params.length})`;
     }
 
-    query += ` ORDER BY ss.name ASC, svt.name ASC`;
+    query += ` ORDER BY supplier_name ASC, svt.name ASC`;
     const rows = await dbQuery(query, params);
     res.json({ data: rows, total: rows.length });
   } catch (error) {
@@ -41,26 +42,54 @@ export async function getVehicles(req, res) {
 // POST /api/supply/vehicles
 export async function createVehicle(req, res) {
   try {
-    const { supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info } = req.body;
-    if (!supplier_id || !vehicle_type_id) {
-      return res.status(400).json({ error: 'Supplier and Vehicle Type are required.' });
+    const { supplier_id, supplier_ids, vehicle_type_id, vehicle_number, notes, custom_driver_info } = req.body;
+    
+    // Support multi-supplier array or single supplier_id
+    const targetSuppliers = Array.isArray(supplier_ids) && supplier_ids.length > 0 
+      ? supplier_ids 
+      : (supplier_id ? [supplier_id] : []);
+
+    if (targetSuppliers.length === 0 || !vehicle_type_id) {
+      return res.status(400).json({ error: 'At least one Supplier and Vehicle Type are required.' });
     }
 
-    const id = generateUuid();
-    await dbQuery(
-      `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, supplier_id, vehicle_type_id, vehicle_number || '', notes || '', custom_driver_info || '', 1]
-    );
+    const createdIds = [];
+    for (const suppId of targetSuppliers) {
+      // Avoid duplicate vehicle assignment to the same supplier if already exists
+      const existing = await dbQuery(
+        `SELECT id FROM supply_vehicles WHERE supplier_id = $1 AND vehicle_type_id = $2 AND LOWER(vehicle_number) = LOWER($3) AND deleted_at IS NULL`,
+        [suppId, vehicle_type_id, (vehicle_number || '').trim()]
+      );
 
-    // Return with join data
-    const created = await dbQuery(`
-      SELECT sv.*, ss.name as supplier_name, ss.supplier_code, svt.name as vehicle_type_name
-      FROM supply_vehicles sv
-      LEFT JOIN supply_suppliers ss ON sv.supplier_id = ss.id
-      LEFT JOIN supply_vehicle_types svt ON sv.vehicle_type_id = svt.id
-      WHERE sv.id = $1
-    `, [id]);
-    res.status(201).json(created[0]);
+      if (existing.length > 0) {
+        createdIds.push(existing[0].id);
+      } else {
+        const id = generateUuid();
+        await dbQuery(
+          `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [id, suppId, vehicle_type_id, (vehicle_number || '').trim(), notes || '', custom_driver_info || '', 1]
+        );
+        createdIds.push(id);
+      }
+    }
+
+    // Return all created/assigned vehicle objects with join data
+    const createdRows = [];
+    for (const cid of createdIds) {
+      const rows = await dbQuery(`
+        SELECT sv.*, 
+               COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
+               COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code, 
+               svt.name as vehicle_type_name
+        FROM supply_vehicles sv
+        LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
+        LEFT JOIN supply_vehicle_types svt ON sv.vehicle_type_id = svt.id
+        WHERE sv.id = $1
+      `, [cid]);
+      if (rows.length > 0) createdRows.push(rows[0]);
+    }
+
+    res.status(201).json(createdRows.length === 1 ? createdRows[0] : { data: createdRows, total: createdRows.length });
   } catch (error) {
     console.error('Error creating vehicle:', error);
     res.status(500).json({ error: error.message });
@@ -71,17 +100,40 @@ export async function createVehicle(req, res) {
 export async function updateVehicle(req, res) {
   try {
     const { id } = req.params;
-    const { supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status } = req.body;
+    const { supplier_id, supplier_ids, vehicle_type_id, vehicle_number, notes, custom_driver_info, status } = req.body;
+
+    const mainSupplierId = Array.isArray(supplier_ids) && supplier_ids.length > 0 ? supplier_ids[0] : supplier_id;
 
     await dbQuery(
       `UPDATE supply_vehicles SET supplier_id = $1, vehicle_type_id = $2, vehicle_number = $3, notes = $4, custom_driver_info = $5, status = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
-      [supplier_id, vehicle_type_id, vehicle_number || '', notes || '', custom_driver_info || '', status !== undefined ? (status ? 1 : 0) : 1, id]
+      [mainSupplierId, vehicle_type_id, (vehicle_number || '').trim(), notes || '', custom_driver_info || '', status !== undefined ? (status ? 1 : 0) : 1, id]
     );
 
+    // If multiple suppliers selected on update, ensure additional supplier records exist
+    if (Array.isArray(supplier_ids) && supplier_ids.length > 1) {
+      for (let i = 1; i < supplier_ids.length; i++) {
+        const suppId = supplier_ids[i];
+        const existing = await dbQuery(
+          `SELECT id FROM supply_vehicles WHERE supplier_id = $1 AND vehicle_type_id = $2 AND LOWER(vehicle_number) = LOWER($3) AND deleted_at IS NULL`,
+          [suppId, vehicle_type_id, (vehicle_number || '').trim()]
+        );
+        if (existing.length === 0) {
+          const newId = generateUuid();
+          await dbQuery(
+            `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [newId, suppId, vehicle_type_id, (vehicle_number || '').trim(), notes || '', custom_driver_info || '', 1]
+          );
+        }
+      }
+    }
+
     const updated = await dbQuery(`
-      SELECT sv.*, ss.name as supplier_name, ss.supplier_code, svt.name as vehicle_type_name
+      SELECT sv.*, 
+             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
+             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code, 
+             svt.name as vehicle_type_name
       FROM supply_vehicles sv
-      LEFT JOIN supply_suppliers ss ON sv.supplier_id = ss.id
+      LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
       LEFT JOIN supply_vehicle_types svt ON sv.vehicle_type_id = svt.id
       WHERE sv.id = $1
     `, [id]);

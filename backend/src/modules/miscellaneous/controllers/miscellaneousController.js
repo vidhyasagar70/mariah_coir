@@ -158,33 +158,11 @@ export async function createMiscellaneousEntry(req, res) {
       status = 'PAID'
     } = req.body;
 
-    // Validation
-    if (!description || description.trim().length < 3) {
-      return res.status(400).json({ error: 'Description is required and must be at least 3 characters long.' });
-    }
-
-    if (description.trim().length > 255) {
-      return res.status(400).json({ error: 'Description must not exceed 255 characters.' });
-    }
-
-    if (!expense_date) {
-      return res.status(400).json({ error: 'Expense Date is required.' });
-    }
-
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number greater than 0.' });
-    }
-
-    if (!payment_mode || !['ONLINE', 'OFFLINE'].includes(payment_mode.toUpperCase())) {
-      return res.status(400).json({ error: 'Payment Mode must be either Online or Offline.' });
-    }
-
-    const mode = payment_mode.toUpperCase();
-
-    if (mode === 'ONLINE' && (!account_number || account_number.trim() === '')) {
-      return res.status(400).json({ error: 'Account Number is required for Online payment mode.' });
-    }
+    // Flexible Validation with fallbacks
+    const finalDescription = (description && description.trim()) ? description.trim() : 'Miscellaneous Expense';
+    const finalDate = expense_date || new Date().toISOString().split('T')[0];
+    const parsedAmount = parseFloat(amount) || 0;
+    const mode = (payment_mode && ['ONLINE', 'OFFLINE'].includes(payment_mode.toUpperCase())) ? payment_mode.toUpperCase() : 'ONLINE';
 
     const id = generateUuid();
     const now = new Date().toISOString();
@@ -199,14 +177,14 @@ export async function createMiscellaneousEntry(req, res) {
       [
         id,
         companyId,
-        description.trim(),
-        expense_date,
+        finalDescription,
+        finalDate,
         parsedAmount,
         mode,
-        mode === 'ONLINE' ? (account_number ? account_number.trim() : null) : null,
-        mode === 'ONLINE' ? (bank_name ? bank_name.trim() : null) : null,
-        mode === 'ONLINE' ? (transaction_reference ? transaction_reference.trim() : null) : null,
-        mode === 'OFFLINE' ? (payment_reference ? payment_reference.trim() : null) : null,
+        account_number ? account_number.trim() : null,
+        bank_name ? bank_name.trim() : null,
+        transaction_reference ? transaction_reference.trim() : null,
+        payment_reference ? payment_reference.trim() : null,
         notes ? notes.trim() : null,
         validStatus,
         userId,
@@ -252,32 +230,10 @@ export async function updateMiscellaneousEntry(req, res) {
       status
     } = req.body;
 
-    if (!description || description.trim().length < 3) {
-      return res.status(400).json({ error: 'Description is required and must be at least 3 characters long.' });
-    }
-
-    if (description.trim().length > 255) {
-      return res.status(400).json({ error: 'Description must not exceed 255 characters.' });
-    }
-
-    if (!expense_date) {
-      return res.status(400).json({ error: 'Expense Date is required.' });
-    }
-
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number greater than 0.' });
-    }
-
-    if (!payment_mode || !['ONLINE', 'OFFLINE'].includes(payment_mode.toUpperCase())) {
-      return res.status(400).json({ error: 'Payment Mode must be either Online or Offline.' });
-    }
-
-    const mode = payment_mode.toUpperCase();
-
-    if (mode === 'ONLINE' && (!account_number || account_number.trim() === '')) {
-      return res.status(400).json({ error: 'Account Number is required for Online payment mode.' });
-    }
+    const finalDescription = (description && description.trim()) ? description.trim() : (existing[0].description || 'Miscellaneous Expense');
+    const finalDate = expense_date || existing[0].expense_date || new Date().toISOString().split('T')[0];
+    const parsedAmount = amount !== undefined ? (parseFloat(amount) || 0) : (existing[0].amount || 0);
+    const mode = (payment_mode && ['ONLINE', 'OFFLINE'].includes(payment_mode.toUpperCase())) ? payment_mode.toUpperCase() : (existing[0].payment_mode || 'ONLINE');
 
     const now = new Date().toISOString();
     const validStatus = ['PAID', 'PENDING', 'CANCELLED'].includes(status?.toUpperCase()) ? status.toUpperCase() : (existing[0].status || 'PAID');
@@ -298,14 +254,14 @@ export async function updateMiscellaneousEntry(req, res) {
         updated_at = $12
        WHERE id = $13 AND company_id = $14 AND deleted_at IS NULL`,
       [
-        description.trim(),
-        expense_date,
+        finalDescription,
+        finalDate,
         parsedAmount,
         mode,
-        mode === 'ONLINE' ? (account_number ? account_number.trim() : null) : null,
-        mode === 'ONLINE' ? (bank_name ? bank_name.trim() : null) : null,
-        mode === 'ONLINE' ? (transaction_reference ? transaction_reference.trim() : null) : null,
-        mode === 'OFFLINE' ? (payment_reference ? payment_reference.trim() : null) : null,
+        account_number ? account_number.trim() : null,
+        bank_name ? bank_name.trim() : null,
+        transaction_reference ? transaction_reference.trim() : null,
+        payment_reference ? payment_reference.trim() : null,
         notes ? notes.trim() : null,
         validStatus,
         userId,

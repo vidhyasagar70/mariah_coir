@@ -9,7 +9,7 @@ export default function SupplierMaster() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', contact_person: '', phone: '', address: '', custom_notes: '' });
+  const [form, setForm] = useState({ name: '', company_name: '', contact_person: '', phone: '', contact_number: '', category: 'Raw Material', address: '', custom_notes: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -23,10 +23,24 @@ export default function SupplierMaster() {
 
   useEffect(() => { fetchData(); }, [search]);
 
-  const openCreate = () => { setEditItem(null); setForm({ name: '', contact_person: '', phone: '', address: '', custom_notes: '' }); setShowModal(true); };
+  const openCreate = () => { 
+    setEditItem(null); 
+    setForm({ name: '', company_name: '', contact_person: '', phone: '', contact_number: '', category: 'Raw Material', address: '', custom_notes: '' }); 
+    setShowModal(true); 
+  };
+  
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, contact_person: item.contact_person || '', phone: item.phone || '', address: item.address || '', custom_notes: item.custom_notes || '' });
+    setForm({ 
+      name: item.name || '', 
+      company_name: item.company_name || '',
+      contact_person: item.contact_person || '', 
+      phone: item.phone || item.contact_number || '', 
+      contact_number: item.contact_number || item.phone || '',
+      category: item.category || 'Raw Material',
+      address: item.address || '', 
+      custom_notes: item.custom_notes || '' 
+    });
     setShowModal(true);
   };
 
@@ -34,7 +48,12 @@ export default function SupplierMaster() {
     if (!form.name.trim()) return;
     const method = editItem ? 'PUT' : 'POST';
     const url = editItem ? `${API}/${editItem.id}` : API;
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, status: 'Active' }) });
+    const payload = {
+      ...form,
+      contact_number: form.phone || form.contact_number,
+      status: 'Active'
+    };
+    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     setShowModal(false);
     fetchData();
   };
@@ -52,8 +71,8 @@ export default function SupplierMaster() {
         <div className="flex items-center space-x-2">
           <div className="p-2 rounded-xl bg-[#E2D2C2]"><Users className="h-5 w-5 text-[#965E36]" /></div>
           <div>
-            <h2 className="text-base font-extrabold text-[#2E1A0C]">Suppliers</h2>
-            <p className="text-[11px] text-[#7C5A3E]">{data.length} supplier(s) registered</p>
+            <h2 className="text-base font-extrabold text-[#2E1A0C]">Suppliers Directory</h2>
+            <p className="text-[11px] text-[#7C5A3E]">{data.length} supplier(s) registered across categories</p>
           </div>
         </div>
         <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -69,18 +88,22 @@ export default function SupplierMaster() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
           <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Total Suppliers</p>
           <p className="text-2xl font-extrabold text-[#2E1A0C] mt-1">{data.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Active</p>
-          <p className="text-2xl font-extrabold text-emerald-600 mt-1">{data.filter(s => s.status === 'Active').length}</p>
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Raw Material</p>
+          <p className="text-2xl font-extrabold text-[#965E36] mt-1">{data.filter(s => s.category === 'Raw Material').length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Inactive</p>
-          <p className="text-2xl font-extrabold text-red-500 mt-1">{data.filter(s => s.status === 'Inactive').length}</p>
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Fleet / Utility</p>
+          <p className="text-2xl font-extrabold text-blue-700 mt-1">{data.filter(s => s.category === 'Fleet Yard' || s.category === 'Utility' || s.category === 'Fuel').length}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#D6C4B0] p-4 shadow-xs">
+          <p className="text-[10px] font-bold uppercase text-[#7C5A3E] tracking-wider">Active Status</p>
+          <p className="text-2xl font-extrabold text-emerald-600 mt-1">{data.filter(s => s.status === 'Active').length}</p>
         </div>
       </div>
 
@@ -92,31 +115,35 @@ export default function SupplierMaster() {
               <tr>
                 <th className="text-left px-4 py-3 font-bold">Code</th>
                 <th className="text-left px-4 py-3 font-bold">Supplier Name</th>
+                <th className="text-left px-4 py-3 font-bold">Company</th>
+                <th className="text-left px-4 py-3 font-bold">Category</th>
                 <th className="text-left px-4 py-3 font-bold">Contact Person</th>
-                <th className="text-left px-4 py-3 font-bold">Phone</th>
-                <th className="text-left px-4 py-3 font-bold">Address</th>
+                <th className="text-left px-4 py-3 font-bold">Phone Number</th>
                 <th className="text-left px-4 py-3 font-bold">Status</th>
                 <th className="text-center px-4 py-3 font-bold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EFE6DC]">
               {loading ? (
-                <tr><td colSpan="7" className="text-center py-8 text-[#8C694E]">Loading...</td></tr>
+                <tr><td colSpan="8" className="text-center py-8 text-[#8C694E]">Loading...</td></tr>
               ) : data.length === 0 ? (
-                <tr><td colSpan="7" className="text-center py-8 text-[#8C694E]">No suppliers found. Add one to get started.</td></tr>
+                <tr><td colSpan="8" className="text-center py-8 text-[#8C694E]">No suppliers found. Add one to get started.</td></tr>
               ) : data.map((item) => (
                 <tr key={item.id} className="hover:bg-[#FAF7F2] transition">
                   <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-md bg-[#EFE6DC] text-[#965E36] text-[10px] font-mono font-bold">{item.supplier_code}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-[#EFE6DC] text-[#965E36] text-[10px] font-mono font-bold">{item.supplier_code || item.id}</span>
                   </td>
                   <td className="px-4 py-3 font-semibold text-[#2E1A0C]">{item.name}</td>
+                  <td className="px-4 py-3 text-[#5C3B21]">{item.company_name || '-'}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E2D2C2] text-[#2E1A0C]">{item.category || 'Raw Material'}</span>
+                  </td>
                   <td className="px-4 py-3 text-[#5C3B21]">{item.contact_person || '-'}</td>
                   <td className="px-4 py-3 text-[#5C3B21]">
-                    {item.phone ? (
-                      <span className="flex items-center space-x-1"><Phone className="h-3 w-3 text-[#8C694E]" /><span>{item.phone}</span></span>
+                    {item.phone || item.contact_number ? (
+                      <span className="flex items-center space-x-1"><Phone className="h-3 w-3 text-[#8C694E]" /><span>{item.phone || item.contact_number}</span></span>
                     ) : '-'}
                   </td>
-                  <td className="px-4 py-3 text-[#7C5A3E] max-w-[180px] truncate">{item.address || '-'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {item.status}
@@ -151,13 +178,30 @@ export default function SupplierMaster() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Company Name</label>
+                  <input value={form.company_name} onChange={e => setForm({...form, company_name: e.target.value})} placeholder="e.g. Murugan Transport Co."
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Category *</label>
+                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none">
+                    <option value="Raw Material">Raw Material</option>
+                    <option value="Fuel">Fuel</option>
+                    <option value="Utility">Utility</option>
+                    <option value="Fleet Yard">Fleet Yard</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Contact Person</label>
                   <input value={form.contact_person} onChange={e => setForm({...form, contact_person: e.target.value})} placeholder="e.g. S. Murugan"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Phone</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+91 98421 88301"
+                  <label className="text-[11px] font-bold text-[#5C3B21] block mb-1">Contact Number / Phone *</label>
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value, contact_number: e.target.value})} placeholder="+91 98421 88301"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-[#D6C4B0] bg-white text-[#2E1A0C] focus:ring-2 focus:ring-[#965E36] outline-none" />
                 </div>
               </div>

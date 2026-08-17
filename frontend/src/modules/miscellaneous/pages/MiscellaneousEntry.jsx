@@ -81,35 +81,18 @@ export default function MiscellaneousEntry({ editId, onNavigateBack }) {
     setSuccessMessage('');
     setErrors({});
 
-    const errs = {};
-    if (!formData.description || formData.description.trim().length < 3) {
-      errs.description = 'Description is required (min 3 chars).';
-    }
-    if (!formData.expense_date) {
-      errs.expense_date = 'Expense Date is required.';
-    }
-    const numAmount = parseFloat(formData.amount);
-    if (!formData.amount || isNaN(numAmount) || numAmount <= 0) {
-      errs.amount = 'Valid amount is required.';
-    }
-    if (formData.payment_mode === 'Online' && (!formData.account_number || formData.account_number.trim() === '')) {
-      errs.account_number = 'Account Number is required for Online payment.';
-    }
-
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      setGeneralError('Please fix the highlighted errors before saving.');
-      return;
-    }
-
     try {
       setIsSubmitting(true);
+      const descFinal = formData.description && formData.description.trim() ? formData.description.trim() : 'Miscellaneous Expense';
+      const dateFinal = formData.expense_date || new Date().toISOString().split('T')[0];
+      const amountFinal = parseFloat(formData.amount) || 0;
+
       const payload = {
-        description: formData.description.trim(),
-        expense_date: formData.expense_date,
-        amount: parseFloat(formData.amount),
+        description: descFinal,
+        expense_date: dateFinal,
+        amount: amountFinal,
         payment_mode: formData.payment_mode.toUpperCase(),
-        account_number: formData.payment_mode === 'Online' ? formData.account_number.trim() : null,
+        account_number: formData.account_number ? formData.account_number.trim() : null,
         bank_name: formData.payment_mode === 'Online' ? (formData.bank_name ? formData.bank_name.trim() : null) : null,
         transaction_reference: formData.payment_mode === 'Online' ? (formData.transaction_reference ? formData.transaction_reference.trim() : null) : null,
         payment_reference: formData.payment_mode === 'Offline' ? (formData.payment_reference ? formData.payment_reference.trim() : null) : null,
@@ -185,64 +168,52 @@ export default function MiscellaneousEntry({ editId, onNavigateBack }) {
           
           {/* 1. Description */}
           <div className="flex flex-col md:flex-row md:items-start gap-1.5 md:gap-4">
-            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0 md:pt-2">Miscellaneous Description *</label>
+            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0 md:pt-2">Miscellaneous Description (Optional)</label>
             <div className="flex-1 w-full md:max-w-md">
               <textarea
                 rows="2"
-                required
                 placeholder="e.g. Office stationery, Staff refreshments..."
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                className={`w-full px-3 py-2 rounded-xl bg-white border text-[#2E1C11] placeholder-[#A8988B] focus:outline-none transition-colors font-medium ${
-                  errors.description ? 'border-rose-500 focus:border-rose-600' : 'border-[#D6C4B0] focus:border-[#965E36]'
-                }`}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-[#D6C4B0] text-[#2E1C11] placeholder-[#A8988B] focus:outline-none focus:border-[#965E36] transition-colors font-medium"
               />
-              {errors.description && <p className="text-[10px] text-rose-600 mt-1">{errors.description}</p>}
             </div>
           </div>
 
           {/* 2. Expense Date */}
           <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4">
-            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Expense Date *</label>
+            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Expense Date (Optional)</label>
             <div className="relative flex-1 w-full md:max-w-md">
               <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
               <input
                 type="date"
-                required
                 value={formData.expense_date}
                 onChange={(e) => handleChange('expense_date', e.target.value)}
-                className={`w-full pl-9 pr-3 py-2 rounded-xl bg-white border text-[#2E1C11] font-medium focus:outline-none transition-colors ${
-                  errors.expense_date ? 'border-rose-500 focus:border-rose-600' : 'border-[#D6C4B0] focus:border-[#965E36]'
-                }`}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#D6C4B0] text-[#2E1C11] font-medium focus:outline-none focus:border-[#965E36] transition-colors"
               />
-              {errors.expense_date && <p className="text-[10px] text-rose-600 mt-1">{errors.expense_date}</p>}
             </div>
           </div>
 
           {/* 3. Amount Spent */}
           <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4">
-            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Amount Spent (₹) *</label>
+            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Amount Spent (₹) (Optional)</label>
             <div className="relative flex-1 w-full md:max-w-md">
               <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
               <input
                 type="number"
                 step="0.01"
-                min="0.01"
-                required
+                min="0"
                 placeholder="e.g. 1500"
                 value={formData.amount}
                 onChange={(e) => handleChange('amount', e.target.value)}
-                className={`w-full pl-9 pr-3 py-2 rounded-xl bg-white border font-mono font-bold text-sm text-[#2E1C11] focus:outline-none transition-colors ${
-                  errors.amount ? 'border-rose-500 focus:border-rose-600' : 'border-[#D6C4B0] focus:border-[#965E36]'
-                }`}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#D6C4B0] font-mono font-bold text-sm text-[#2E1C11] focus:outline-none focus:border-[#965E36] transition-colors"
               />
-              {errors.amount && <p className="text-[10px] text-rose-600 mt-1">{errors.amount}</p>}
             </div>
           </div>
 
           {/* 4. Payment Mode */}
           <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4">
-            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Payment Mode *</label>
+            <label className="md:w-52 text-[#3D281C] font-semibold shrink-0">Payment Mode</label>
             <div className="relative flex-1 w-full md:max-w-md">
               <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
               <select
@@ -261,20 +232,16 @@ export default function MiscellaneousEntry({ editId, onNavigateBack }) {
             <>
               {/* Account Number */}
               <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4 pt-1 animate-fade-in">
-                <label className="md:w-52 text-[#965E36] font-bold shrink-0">Account Number / UPI ID *</label>
+                <label className="md:w-52 text-[#5C3B21] font-semibold shrink-0">Account Number / UPI ID (Optional)</label>
                 <div className="relative flex-1 w-full md:max-w-md">
                   <Hash className="absolute left-3 top-2.5 h-4 w-4 text-[#A8988B]" />
                   <input
                     type="text"
-                    required={isOnlinePayment}
                     placeholder="e.g. SBIN00012345 or user@upi"
                     value={formData.account_number}
                     onChange={(e) => handleChange('account_number', e.target.value)}
-                    className={`w-full pl-9 pr-3 py-2 rounded-xl bg-white border font-mono font-medium text-[#2E1C11] placeholder-[#A8988B] focus:outline-none transition-colors ${
-                      errors.account_number ? 'border-rose-500 focus:border-rose-600' : 'border-[#965E36] focus:border-[#7A4A28]'
-                    }`}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#D6C4B0] font-mono font-medium text-[#2E1C11] placeholder-[#A8988B] focus:outline-none focus:border-[#965E36] transition-colors"
                   />
-                  {errors.account_number && <p className="text-[10px] text-rose-600 mt-1">{errors.account_number}</p>}
                 </div>
               </div>
 
