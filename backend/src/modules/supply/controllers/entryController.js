@@ -6,8 +6,8 @@ export async function getEntries(req, res) {
     const { supplier_id, raw_material_id, vehicle_type_id, status, from_date, to_date, search } = req.query;
     let query = `
       SELECT se.*,
-             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
-             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
+             COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name, 
+             ss.id as supplier_code,
              rm.name as raw_material_name,
              svt.name as vehicle_type_name,
              sv.vehicle_number
@@ -173,8 +173,8 @@ export async function createEntry(req, res) {
     // Return created entry with join data
     const created = await dbQuery(`
       SELECT se.*, 
-             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
-             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
+             COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name, 
+             ss.id as supplier_code,
              rm.name as raw_material_name, svt.name as vehicle_type_name, sv.vehicle_number
       FROM supply_entries se
       LEFT JOIN suppliers ss ON se.supplier_id = ss.id
