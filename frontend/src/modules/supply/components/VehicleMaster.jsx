@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 
-const API = 'http://localhost:5000/api/supply';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = `${API_BASE}/supply`;
 
 export default function VehicleMaster() {
   const [data, setData] = useState([]);

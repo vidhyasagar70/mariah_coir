@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Plus, Eye, X, ArrowDownCircle, ArrowUpCircle, Wallet, ChevronLeft } from 'lucide-react';
 
-const API = 'http://localhost:5000/api/supply';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = `${API_BASE}/supply`;
 
 export default function AccountManagement() {
   const [accounts, setAccounts] = useState([]);

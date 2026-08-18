@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Pencil, Trash2, X, Search, Phone, MapPin } from 'lucide-react';
 
-const API = 'http://localhost:5000/api/supply/suppliers';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = `${API_BASE}/supply/suppliers`;
 
 export default function SupplierMaster() {
   const [data, setData] = useState([]);

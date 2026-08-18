@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 
-const API = 'http://localhost:5000/api/supply/raw-materials';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = `${API_BASE}/supply/raw-materials`;
 
 export default function RawMaterialMaster() {
   const [data, setData] = useState([]);

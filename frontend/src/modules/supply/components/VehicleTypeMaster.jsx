@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 
-const API = 'http://localhost:5000/api/supply/vehicle-types';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = `${API_BASE}/supply/vehicle-types`;
 
 export default function VehicleTypeMaster() {
   const [data, setData] = useState([]);
