@@ -706,6 +706,7 @@ export async function initDb() {
         if (!supInfo.some(c => c.name === 'category')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN category TEXT DEFAULT 'Raw Material';`);
         if (!supInfo.some(c => c.name === 'custom_notes')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN custom_notes TEXT;`);
         if (!supInfo.some(c => c.name === 'supplier_code')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN supplier_code TEXT;`);
+        if (!supInfo.some(c => c.name === 'deleted_at')) await runSqlite(`ALTER TABLE suppliers ADD COLUMN deleted_at TEXT;`);
       }
     } catch (e) { console.error('Error altering suppliers table:', e); }
 

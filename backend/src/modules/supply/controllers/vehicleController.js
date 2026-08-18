@@ -6,8 +6,8 @@ export async function getVehicles(req, res) {
     const { supplier_id, vehicle_type_id, search } = req.query;
     let query = `
       SELECT sv.*, 
-             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name,
-             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
+             COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name,
+             ss.id as supplier_code,
              svt.name as vehicle_type_name
       FROM supply_vehicles sv
       LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
@@ -27,7 +27,7 @@ export async function getVehicles(req, res) {
 
     if (search) {
       params.push(`%${search}%`);
-      query += ` AND (sv.vehicle_number LIKE $${params.length} OR ss.name LIKE $${params.length} OR ss.supplier_name LIKE $${params.length} OR svt.name LIKE $${params.length})`;
+      query += ` AND (sv.vehicle_number LIKE $${params.length} OR ss.name LIKE $${params.length} OR svt.name LIKE $${params.length})`;
     }
 
     query += ` ORDER BY supplier_name ASC, svt.name ASC`;
@@ -42,23 +42,44 @@ export async function getVehicles(req, res) {
 // POST /api/supply/vehicles
 export async function createVehicle(req, res) {
   try {
-    const { supplier_id, supplier_ids, vehicle_type_id, vehicle_number, notes, custom_driver_info } = req.body;
+    const { supplier_id, supplier_ids, vehicle_type_id, vehicle_number, notes, custom_driver_info, vehicles } = req.body;
     
-    // Support multi-supplier array or single supplier_id
-    const targetSuppliers = Array.isArray(supplier_ids) && supplier_ids.length > 0 
-      ? supplier_ids 
-      : (supplier_id ? [supplier_id] : []);
+    // Support single supplier_id or fallback array
+    const targetSupplierId = supplier_id || (Array.isArray(supplier_ids) && supplier_ids.length > 0 ? supplier_ids[0] : null);
 
-    if (targetSuppliers.length === 0 || !vehicle_type_id) {
-      return res.status(400).json({ error: 'At least one Supplier and Vehicle Type are required.' });
+    if (!targetSupplierId && (!Array.isArray(supplier_ids) || supplier_ids.length === 0)) {
+      return res.status(400).json({ error: 'Supplier is required.' });
+    }
+
+    // Prepare list of vehicle items to create
+    let itemsToCreate = [];
+    if (Array.isArray(vehicles) && vehicles.length > 0) {
+      itemsToCreate = vehicles;
+    } else if (vehicle_type_id) {
+      itemsToCreate = [{ vehicle_type_id, vehicle_number, notes, custom_driver_info }];
+    } else if (Array.isArray(supplier_ids) && supplier_ids.length > 0) {
+      for (const suppId of supplier_ids) {
+        itemsToCreate.push({ supplier_id: suppId, vehicle_type_id, vehicle_number, notes, custom_driver_info });
+      }
+    }
+
+    if (itemsToCreate.length === 0) {
+      return res.status(400).json({ error: 'At least one Vehicle Type is required.' });
     }
 
     const createdIds = [];
-    for (const suppId of targetSuppliers) {
+    for (const item of itemsToCreate) {
+      const sId = item.supplier_id || targetSupplierId;
+      const vTypeId = item.vehicle_type_id;
+      if (!sId || !vTypeId) continue;
+      const vNum = (item.vehicle_number || '').trim();
+      const vNotes = item.notes || '';
+      const vDriver = item.custom_driver_info || '';
+
       // Avoid duplicate vehicle assignment to the same supplier if already exists
       const existing = await dbQuery(
         `SELECT id FROM supply_vehicles WHERE supplier_id = $1 AND vehicle_type_id = $2 AND LOWER(vehicle_number) = LOWER($3) AND deleted_at IS NULL`,
-        [suppId, vehicle_type_id, (vehicle_number || '').trim()]
+        [sId, vTypeId, vNum]
       );
 
       if (existing.length > 0) {
@@ -67,7 +88,7 @@ export async function createVehicle(req, res) {
         const id = generateUuid();
         await dbQuery(
           `INSERT INTO supply_vehicles (id, supplier_id, vehicle_type_id, vehicle_number, notes, custom_driver_info, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [id, suppId, vehicle_type_id, (vehicle_number || '').trim(), notes || '', custom_driver_info || '', 1]
+          [id, sId, vTypeId, vNum, vNotes, vDriver, 1]
         );
         createdIds.push(id);
       }
@@ -78,8 +99,8 @@ export async function createVehicle(req, res) {
     for (const cid of createdIds) {
       const rows = await dbQuery(`
         SELECT sv.*, 
-               COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
-               COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code, 
+               COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name, 
+               ss.id as supplier_code, 
                svt.name as vehicle_type_name
         FROM supply_vehicles sv
         LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
@@ -129,8 +150,8 @@ export async function updateVehicle(req, res) {
 
     const updated = await dbQuery(`
       SELECT sv.*, 
-             COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
-             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code, 
+             COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name, 
+             ss.id as supplier_code, 
              svt.name as vehicle_type_name
       FROM supply_vehicles sv
       LEFT JOIN suppliers ss ON sv.supplier_id = ss.id
