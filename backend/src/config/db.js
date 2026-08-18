@@ -62,6 +62,8 @@ export async function initDb() {
         CREATE SEQUENCE IF NOT EXISTS supplier_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS receipt_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS settlement_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS maintenance_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS supply_entry_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS product_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS dust_master_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS dust_customer_seq START 1;
