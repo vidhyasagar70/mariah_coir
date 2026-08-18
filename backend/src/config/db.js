@@ -624,6 +624,47 @@ export async function initDb() {
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS custom_notes TEXT;
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
+
+        ALTER TABLE raw_materials ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE raw_materials ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Active';
+        ALTER TABLE raw_materials ADD COLUMN IF NOT EXISTS custom_specifications TEXT;
+
+        ALTER TABLE supply_vehicle_types ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE supply_vehicle_types ADD COLUMN IF NOT EXISTS custom_alias TEXT;
+
+        ALTER TABLE supply_vehicles ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE supply_vehicles ALTER COLUMN supplier_id TYPE VARCHAR(50);
+        ALTER TABLE supply_vehicles ALTER COLUMN vehicle_type_id TYPE VARCHAR(50);
+        ALTER TABLE supply_vehicles ADD COLUMN IF NOT EXISTS custom_driver_info TEXT;
+
+        ALTER TABLE supply_pricing ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE supply_pricing ALTER COLUMN raw_material_id TYPE VARCHAR(50);
+        ALTER TABLE supply_pricing ALTER COLUMN vehicle_type_id TYPE VARCHAR(50);
+        ALTER TABLE supply_pricing ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Active';
+        ALTER TABLE supply_pricing ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        ALTER TABLE supply_pricing ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
+
+        ALTER TABLE supply_entries ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN supplier_id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN vehicle_type_id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN vehicle_id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN raw_material_id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN unit_id TYPE VARCHAR(50);
+        ALTER TABLE supply_entries ALTER COLUMN unit_id DROP NOT NULL;
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS entry_code VARCHAR(50);
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS rate_per_unit NUMERIC(18, 2);
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(50);
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        ALTER TABLE supply_entries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
+
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS transaction_date DATE;
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS transaction_type VARCHAR(50);
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS description TEXT;
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS debit NUMERIC(18, 2) DEFAULT 0;
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS credit NUMERIC(18, 2) DEFAULT 0;
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS running_balance NUMERIC(18, 2) DEFAULT 0;
+        ALTER TABLE supply_account_ledger ADD COLUMN IF NOT EXISTS reference_type VARCHAR(50);
       `);
       console.log('[DB] PostgreSQL schema initialized.');
     } finally {
