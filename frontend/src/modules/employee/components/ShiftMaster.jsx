@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import ShiftModal from './ShiftModal';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 export default function ShiftMaster() {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function ShiftMaster() {
     try {
       setLoading(true);
       const query = new URLSearchParams({ search, status: statusFilter }).toString();
-      const res = await fetch(`/api/shifts?${query}`);
+      const res = await fetch(`${API_BASE}/shifts?${query}`);
       const data = await res.json();
       if (res.ok) {
         setShifts(data.records || []);
@@ -39,7 +41,7 @@ export default function ShiftMaster() {
   };
 
   const handleSaveShift = async (formData) => {
-    const url = editingShift ? `/api/shifts/${editingShift.id}` : '/api/shifts';
+    const url = editingShift ? `${API_BASE}/shifts/${editingShift.id}` : `${API_BASE}/shifts`;
     const method = editingShift ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -61,7 +63,7 @@ export default function ShiftMaster() {
     if (!window.confirm(`Are you sure you want to delete shift '${shift.name}'?`)) return;
 
     try {
-      const res = await fetch(`/api/shifts/${shift.id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/shifts/${shift.id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (res.ok) {

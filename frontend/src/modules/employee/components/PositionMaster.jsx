@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Briefcase } from 'lucide-react';
 import PositionModal from './PositionModal';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 export default function PositionMaster({ trackingMode = 'employee' }) {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function PositionMaster({ trackingMode = 'employee' }) {
     try {
       setLoading(true);
       const query = new URLSearchParams({ search, status: statusFilter }).toString();
-      const res = await fetch(`/api/positions?${query}`);
+      const res = await fetch(`${API_BASE}/positions?${query}`);
       const data = await res.json();
       if (res.ok) {
         setPositions(data.records || []);
@@ -39,7 +41,7 @@ export default function PositionMaster({ trackingMode = 'employee' }) {
   };
 
   const handleSavePosition = async (formData) => {
-    const url = editingPosition ? `/api/positions/${editingPosition.id}` : '/api/positions';
+    const url = editingPosition ? `${API_BASE}/positions/${editingPosition.id}` : `${API_BASE}/positions`;
     const method = editingPosition ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -61,7 +63,7 @@ export default function PositionMaster({ trackingMode = 'employee' }) {
     if (!window.confirm(`Are you sure you want to delete position '${pos.name}'?`)) return;
 
     try {
-      const res = await fetch(`/api/positions/${pos.id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/positions/${pos.id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (res.ok) {

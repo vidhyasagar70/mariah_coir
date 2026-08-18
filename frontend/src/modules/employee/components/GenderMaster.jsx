@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Users } from 'lucide-react';
 import GenderModal from './GenderModal';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 export default function GenderMaster() {
   const [genders, setGenders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function GenderMaster() {
     try {
       setLoading(true);
       const query = new URLSearchParams({ search, status: statusFilter }).toString();
-      const res = await fetch(`/api/genders?${query}`);
+      const res = await fetch(`${API_BASE}/genders?${query}`);
       const data = await res.json();
       if (res.ok) {
         setGenders(data.records || []);
@@ -39,7 +41,7 @@ export default function GenderMaster() {
   };
 
   const handleSaveGender = async (formData) => {
-    const url = editingGender ? `/api/genders/${editingGender.id}` : '/api/genders';
+    const url = editingGender ? `${API_BASE}/genders/${editingGender.id}` : `${API_BASE}/genders`;
     const method = editingGender ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -61,7 +63,7 @@ export default function GenderMaster() {
     if (!window.confirm(`Are you sure you want to delete gender '${gender.name}'?`)) return;
 
     try {
-      const res = await fetch(`/api/genders/${gender.id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/genders/${gender.id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (res.ok) {
