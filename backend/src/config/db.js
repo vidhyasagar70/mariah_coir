@@ -613,6 +613,17 @@ export async function initDb() {
             notes TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        ALTER TABLE suppliers ALTER COLUMN id TYPE VARCHAR(50);
+        ALTER TABLE suppliers DROP CONSTRAINT IF EXISTS suppliers_category_check;
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS supplier_code VARCHAR(50);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS supplier_number VARCHAR(50);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS supplier_name VARCHAR(150);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS custom_notes TEXT;
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
       `);
       console.log('[DB] PostgreSQL schema initialized.');
     } finally {

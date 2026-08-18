@@ -85,13 +85,13 @@ export async function createSupplier(req, res) {
     const id = `SSUP-${String(nextNum).padStart(3, '0')}`;
 
     await dbQuery(
-      `INSERT INTO suppliers (id, supplier_code, supplier_number, supplier_name, name, company_name, contact_person, phone, phone_number, contact_number, category, custom_notes, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-      [id, id, id, name.trim(), name.trim(), companyNameVal, contactPersonVal, phoneVal, phoneVal, phoneVal, categoryVal, notesVal, 'Active']
+      `INSERT INTO suppliers (id, name, company_name, contact_person, contact_number, category, custom_notes, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, name.trim(), companyNameVal, contactPersonVal, phoneVal, categoryVal, notesVal, 'Active']
     );
 
     const created = await dbQuery(`SELECT * FROM suppliers WHERE id = $1`, [id]);
-    const r = created[0];
+    const r = created[0] || { id, name: name.trim(), company_name: companyNameVal, contact_person: contactPersonVal, contact_number: phoneVal, category: categoryVal, custom_notes: notesVal, status: 'Active' };
     res.status(201).json({
       ...r,
       supplier_code: r.id,
@@ -113,13 +113,13 @@ export async function updateSupplier(req, res) {
 
     await dbQuery(
       `UPDATE suppliers 
-       SET name = $1, supplier_name = $1, company_name = $2, contact_person = $3, phone = $4, phone_number = $4, contact_number = $4, category = $5, custom_notes = $6, status = $7, updated_at = CURRENT_TIMESTAMP 
+       SET name = $1, company_name = $2, contact_person = $3, contact_number = $4, category = $5, custom_notes = $6, status = $7
        WHERE id = $8`,
       [name?.trim(), company_name || '', contact_person || '', phoneVal, category || 'Raw Material', custom_notes || '', status || 'Active', id]
     );
 
     const updated = await dbQuery(`SELECT * FROM suppliers WHERE id = $1`, [id]);
-    const r = updated[0];
+    const r = updated[0] || { id };
     res.json({
       ...r,
       supplier_code: r.id,

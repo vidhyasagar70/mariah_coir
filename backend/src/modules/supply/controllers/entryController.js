@@ -233,15 +233,15 @@ export async function getEntryReports(req, res) {
 
     // Summary by supplier
     const bySupplier = await dbQuery(`
-      SELECT COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier') as supplier_name, 
-             COALESCE(ss.supplier_code, ss.supplier_number, ss.id) as supplier_code,
+      SELECT COALESCE(ss.name, ss.company_name, 'Supplier') as supplier_name, 
+             ss.id as supplier_code,
              COUNT(se.id) as total_entries,
              SUM(se.quantity) as total_quantity,
              SUM(se.total_amount) as total_amount
       FROM supply_entries se
       LEFT JOIN suppliers ss ON se.supplier_id = ss.id
       WHERE se.deleted_at IS NULL AND (se.status = 'Confirmed' OR se.status = 'Pending') ${dateFilter}
-      GROUP BY COALESCE(ss.name, ss.supplier_name, ss.company_name, 'Supplier'), COALESCE(ss.supplier_code, ss.supplier_number, ss.id)
+      GROUP BY COALESCE(ss.name, ss.company_name, 'Supplier'), ss.id
       ORDER BY total_amount DESC
     `, params);
 
