@@ -4,11 +4,20 @@ import dotenv from 'dotenv';
 import { initDb, dbQuery } from './config/db.js';
 import { seedData } from '../seed.js';
 
-import supplierRoutes from './routes/supplierRoutes.js';
-import receiptRoutes from './routes/receiptRoutes.js';
-import ledgerRoutes from './routes/ledgerRoutes.js';
-import settlementRoutes from './routes/settlementRoutes.js';
-import masterVehicleRoutes from './routes/masterVehicleRoutes.js';
+import maintenanceRoutes from './modules/maintenance/routes/maintenanceRoutes.js';
+import miscellaneousRoutes from './modules/miscellaneous/routes/miscellaneousRoutes.js';
+import positionRoutes from './modules/employee/routes/positionRoutes.js';
+import genderRoutes from './modules/employee/routes/genderRoutes.js';
+import shiftRoutes from './modules/employee/routes/shiftRoutes.js';
+import employeeRoutes from './modules/employee/routes/employeeRoutes.js';
+import salaryRoutes from './modules/employee/routes/salaryRoutes.js';
+import attendanceRoutes from './modules/employee/routes/attendanceRoutes.js';
+import supplyRoutes from './modules/supply/routes/supplyRoutes.js';
+import supplierManagementRoutes from './modules/supplier/routes/supplierManagementRoutes.js';
+import productRoutes from './modules/product/routes/productRoutes.js';
+import dustRoutes from './modules/product/routes/dustRoutes.js';
+import salesRoutes from './modules/sales/routes/salesRoutes.js';
+import dashboardRoutes from './modules/dashboard/routes/dashboardRoutes.js';
 
 dotenv.config();
 
@@ -19,11 +28,21 @@ app.use(cors());
 app.use(express.json());
 
 // Mount API Routers
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/receipts', receiptRoutes);
-app.use('/api/ledger', ledgerRoutes);
-app.use('/api/settlements', settlementRoutes);
-app.use('/api/master-vehicles', masterVehicleRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/miscellaneous', miscellaneousRoutes);
+
+app.use('/api/positions', positionRoutes);
+app.use('/api/genders', genderRoutes);
+app.use('/api/shifts', shiftRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/salaries', salaryRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/supply', supplyRoutes);
+app.use('/api/supplier-management', supplierManagementRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/dust', dustRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Seed API endpoint
 app.post('/api/seed', async (req, res) => {
@@ -44,11 +63,15 @@ app.get('/api/health', (req, res) => {
 // Initialize Database & Start Server with Error Handling
 initDb().then(async () => {
   console.log('[SERVER] Database Initialized.');
-  const existing = await dbQuery('SELECT COUNT(*) as count FROM suppliers');
-  const count = parseInt(existing[0]?.count || existing[0]?.['COUNT(*)'] || 0, 10);
-  if (count === 0) {
-    console.log('[SERVER] Database empty. Populating initial seed data...');
-    await seedData();
+  try {
+    const existing = await dbQuery('SELECT COUNT(*) as count FROM positions');
+    const count = parseInt(existing[0]?.count || existing[0]?.['COUNT(*)'] || 0, 10);
+    if (count === 0) {
+      console.log('[SERVER] Database empty. Populating initial seed data...');
+      await seedData();
+    }
+  } catch (e) {
+    console.log('[SERVER] Initial table count check skipped:', e.message);
   }
 
   const server = app.listen(PORT, () => {

@@ -3,43 +3,54 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #faf7f2;
+    color: #2e1c11;
   }
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars in Warm Cocoa Tones */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f4ede4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d4c3b3;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a89380;
 }
 
-/* Minimalist B2B SaaS Card utilities */
+/* Elegant Brown & White B2B SaaS Card utilities */
 .card-panel {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e8dcd0;
+  box-shadow: 0 1px 3px 0 rgba(46, 28, 17, 0.03), 0 1px 2px -1px rgba(46, 28, 17, 0.03);
+}
+
+.btn-brown {
+  background-color: #965e36;
+  color: #ffffff;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-brown:hover {
+  background-color: #7a4a28;
 }
 
 .btn-black {
-  background-color: #0f172a;
+  background-color: #965e36;
   color: #ffffff;
   transition: all 0.15s ease-in-out;
 }
 
 .btn-black:hover {
-  background-color: #000000;
+  background-color: #7a4a28;
 }
+
